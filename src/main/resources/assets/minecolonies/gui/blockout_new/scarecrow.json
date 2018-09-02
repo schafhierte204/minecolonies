@@ -20,7 +20,8 @@
           "id": "label_used_by",
           "type": "blockout:label",
           "size": "176, 13",
-          "margin": "7,6",
+          "margin": "7,6,7",
+          "alignment":"LEFT,TOP,RIGHT",
           "content": "{Binding:Desc}"
         },
         {
