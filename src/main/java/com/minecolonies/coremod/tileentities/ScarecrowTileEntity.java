@@ -406,7 +406,7 @@ public class ScarecrowTileEntity extends TileEntity
                 owner = colony.getCitizenManager().getCitizen(ownerId).getName();
             }
         }
-        setName(LanguageHandler.format("com.minecolonies.coremod.gui.scarecrow.user", LanguageHandler.format(owner)));
+        setName("${com.minecolonies.coremod.gui.scarecrow.user}${"+owner+"}");
         markDirty();
     }
 
