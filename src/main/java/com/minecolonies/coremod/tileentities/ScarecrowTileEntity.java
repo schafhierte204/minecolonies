@@ -309,11 +309,11 @@ public class ScarecrowTileEntity extends TileEntityChest
     @Nullable
     public ItemStack getSeed()
     {
-        if (inventory.getStackInSlot(0) != ItemStackUtils.EMPTY && inventory.getStackInSlot(0).getItem() instanceof IPlantable)
+        if (getItems().get(0) != ItemStackUtils.EMPTY && getItems().get(0).getItem() instanceof IPlantable)
         {
-            return inventory.getStackInSlot(0);
+            return getItems().get(0);
         }
-        return null;
+        return ItemStackUtils.EMPTY;
     }
 
     /**
