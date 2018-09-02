@@ -291,8 +291,7 @@ public class BuildingFarmer extends AbstractBuildingWorker
                                 getColony().getWorld().getBlockState(scareCrow.getPos()),
                                 getColony().getWorld().getBlockState(scareCrow.getPos()),
                                 BLOCK_UPDATE_FLAG);
-                ((ScarecrowTileEntity) scareCrow).setName(LanguageHandler.format(COM_MINECOLONIES_COREMOD_GUI_SCARECROW_USER,
-                        LanguageHandler.format(COM_MINECOLONIES_COREMOD_GUI_SCARECROW_USER_NOONE)));
+                ((ScarecrowTileEntity) scareCrow).setName("${" + COM_MINECOLONIES_COREMOD_GUI_SCARECROW_USER + "}${" + COM_MINECOLONIES_COREMOD_GUI_SCARECROW_USER_NOONE + "}");
             }
         }
     }
@@ -450,7 +449,8 @@ public class BuildingFarmer extends AbstractBuildingWorker
                 final TileEntity scarecrow = world.getTileEntity(field);
                 if (scarecrow instanceof  ScarecrowTileEntity)
                 {
-                    ((ScarecrowTileEntity) scarecrow).setName(LanguageHandler.format(COM_MINECOLONIES_COREMOD_GUI_SCARECROW_USER, getMainCitizen().getName()));
+                    ((ScarecrowTileEntity) scarecrow).setOwner(getMainCitizen().getId());
+                    ((ScarecrowTileEntity) scarecrow).setName("${" + COM_MINECOLONIES_COREMOD_GUI_SCARECROW_USER + "}${"+getMainCitizen().getName()+"}");
                     getColony().getWorld()
                             .notifyBlockUpdate(scarecrow.getPos(),
                                     getColony().getWorld().getBlockState(scarecrow.getPos()),
@@ -497,8 +497,9 @@ public class BuildingFarmer extends AbstractBuildingWorker
                                 getColony().getWorld().getBlockState(scarecrow.getPos()),
                                 getColony().getWorld().getBlockState(scarecrow.getPos()),
                                 BLOCK_UPDATE_FLAG);
-            ((ScarecrowTileEntity) scarecrow).setName(LanguageHandler.format(COM_MINECOLONIES_COREMOD_GUI_SCARECROW_USER,
-                        LanguageHandler.format(COM_MINECOLONIES_COREMOD_GUI_SCARECROW_USER_NOONE)));
+
+            ((ScarecrowTileEntity) scarecrow).setName("${" + COM_MINECOLONIES_COREMOD_GUI_SCARECROW_USER + "}${" + COM_MINECOLONIES_COREMOD_GUI_SCARECROW_USER_NOONE + "}");
+
 
         }
     }
