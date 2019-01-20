@@ -7,6 +7,8 @@ import com.minecolonies.api.colony.permissions.Player;
 import com.minecolonies.api.colony.permissions.Rank;
 import com.minecolonies.api.colony.requestsystem.manager.IRequestManager;
 import com.minecolonies.api.colony.requestsystem.requester.IRequester;
+import com.minecolonies.api.research.ResearchEffects;
+import com.minecolonies.api.research.ResearchTree;
 import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.coremod.MineColonies;
 import com.minecolonies.coremod.colony.buildings.registry.BuildingRegistry;
@@ -129,6 +131,16 @@ public final class ColonyView implements IColony
      * Print progress.
      */
     private boolean printProgress;
+
+    /**
+     * The research tree of the colony.
+     */
+    private final ResearchTree tree = new ResearchTree();
+
+    /**
+     * The research effects of the colony.
+     */
+    private final ResearchEffects effects = new ResearchEffects();
 
     /**
      * Base constructor for a colony.
@@ -533,6 +545,8 @@ public final class ColonyView implements IColony
 
         this.printProgress = buf.readBoolean();
         return null;
+
+        return we need to sync the tree and effects.
     }
 
     /**
@@ -904,5 +918,17 @@ public final class ColonyView implements IColony
     public List<AbstractBuildingView> getBuildings()
     {
         return new ArrayList<>(buildings.values());
+    }
+
+    @Override
+    public ResearchTree getResearchTree()
+    {
+        return this.tree;
+    }
+
+    @Override
+    public ResearchEffects getResearchEffects()
+    {
+        return this.effects;
     }
 }

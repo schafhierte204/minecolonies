@@ -67,6 +67,16 @@ public class Research implements IResearch
     private int progress;
 
     /**
+     * If the research has an only child.
+     */
+    private boolean onlyChild;
+
+    /**
+     * List of childs of a research.
+     */
+    private final List<String> childs = new ArrayList<>();
+
+    /**
      * Create the new research.
      * @param id it's id.
      * @param parent the parent id of it.
@@ -88,13 +98,15 @@ public class Research implements IResearch
     @Override
     public boolean canResearch(final int uni_level)
     {
-        return state == ResearchState.NOT_STARTED && canDisplay(uni_level) && ResearchTree.getResearch(parent) != null && ResearchTree.getResearch(parent).getState() == ResearchState.FINISHED;
+        final IResearch parentResearch = GlobalResearchTree.researchTree.getResearch(branch, parent);
+        return state == ResearchState.NOT_STARTED && canDisplay(uni_level) && parentResearch != null && parentResearch.getState() == ResearchState.FINISHED && (!parentResearch.hasResearchedChild() || !parentResearch.isOnlyChild());
     }
 
     @Override
     public boolean canDisplay(final int uni_level)
     {
-        return uni_level >= depth;
+        final IResearch parentResearch = GlobalResearchTree.researchTree.getResearch(branch, parent);
+        return uni_level >= depth && (!parentResearch.hasResearchedChild() || !parentResearch.isOnlyChild());
     }
 
     @Override
@@ -146,7 +158,7 @@ public class Research implements IResearch
     }
 
     @Override
-    public void research()
+    public void research(final ResearchEffects effects, final ResearchTree tree)
     {
         if (state == ResearchState.IN_PROGRESS)
         {
@@ -154,6 +166,7 @@ public class Research implements IResearch
             if (progress >= BASE_RESEARCH_TIME * depth)
             {
                 state = ResearchState.FINISHED;
+                effects.applyEffect(this.effect);
             }
         }
     }
@@ -180,5 +193,79 @@ public class Research implements IResearch
     public ResearchState getState()
     {
         return this.state;
+    }
+
+    @Override
+    public String getParent()
+    {
+        return this.parent;
+    }
+
+    @Override
+    public String getBranch()
+    {
+        return this.branch;
+    }
+
+    @Override
+    public int getDepth()
+    {
+        return this.depth;
+    }
+
+    @Override
+    public void setState(final ResearchState value)
+    {
+        this.state = value;
+    }
+
+    @Override
+    public void setProgress(final int progress)
+    {
+        this.progress = progress;
+    }
+
+    @Override
+    public IResearch copy()
+    {
+        return new Research(this.id, this.parent, this.branch, this.desc, this.depth, this.effect);
+    }
+
+    @Override
+    public boolean isOnlyChild()
+    {
+        return onlyChild;
+    }
+
+    @Override
+    public void setOnlyChild(final boolean onlyChild)
+    {
+        this.onlyChild = onlyChild;
+    }
+
+    @Override
+    public boolean hasResearchedChild()
+    {
+        for (final String child: this.childs)
+        {
+            final IResearch childResearch = GlobalResearchTree.researchTree.getResearch(branch, child);
+            if (childResearch != null && childResearch.getState() != ResearchState.NOT_STARTED)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public void addChild(final String child)
+    {
+        this.childs.add(child);
+    }
+
+    @Override
+    public List<String> getChilds()
+    {
+        return new ArrayList<>(this.childs);
     }
 }

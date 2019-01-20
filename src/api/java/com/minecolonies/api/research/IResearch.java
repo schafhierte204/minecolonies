@@ -1,6 +1,5 @@
 package com.minecolonies.api.research;
 
-import com.minecolonies.api.crafting.ItemStorage;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraftforge.items.IItemHandler;
 import org.jetbrains.annotations.NotNull;
@@ -46,8 +45,10 @@ public interface IResearch
 
     /**
      * Tick the research to execute it.
+     * @param effects the research effects class which holds the information of the colony.
+     * @param tree the research tree which holds the currently explored tree.
      */
-    void research();
+    void research(ResearchEffects effects, ResearchTree tree);
 
     /**
      * Getter for the progress of the research.
@@ -73,17 +74,69 @@ public interface IResearch
      */
     ResearchState getState();
 
+    /**
+     * Get the id of the parent IResearch.
+     * @return the string id.
+     */
     String getParent();
 
+    /**
+     * Get the string name of the branch.
+     * @return the branch name.
+     */
     String getBranch();
 
+    /**
+     * Get the depth in the research tree.
+     * @return the depth.
+     */
     int getDepth();
 
-    List<ItemStorage> getCostList();
-
+    /**
+     * Set the current research state.
+     * @param value the state to set.
+     */
     void setState(ResearchState value);
 
+    /**
+     * Set the research progress.
+     * @param progress the progress to set.
+     */
     void setProgress(int progress);
 
-    void setCostList(List<ItemStorage> list);
+    /**
+     * Obtain a copy of the research.
+     * @return the copy of it.
+     */
+    IResearch copy();
+
+    /**
+     * Check if this research is an only child research.
+     * This means, after being researched no other childs can e researched.
+     * @return true if so.
+     */
+    boolean isOnlyChild();
+
+    /**
+     * Set if a research should only allow one child.
+     * @param onlyChild the param to set.
+     */
+    void setOnlyChild(boolean onlyChild);
+
+    /**
+     * Check if this research has other childs.
+     * @return true if so.
+     */
+    boolean hasResearchedChild();
+
+    /**
+     * Add a child to a research.
+     * @param child the child to add.
+     */
+    void addChild(String child);
+
+    /**
+     * Get the list of childs of the research.
+     */
+    List<String> getChilds();
 }

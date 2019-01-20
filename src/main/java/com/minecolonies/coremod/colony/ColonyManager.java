@@ -712,6 +712,7 @@ public final class ColonyManager
         compound.setBoolean(TAG_DISTANCE, true);
         final NBTTagCompound recipeCompound = new NBTTagCompound();
         recipeManager.writeToNBT(recipeCompound);
+
         compound.setTag(RECIPE_MANAGER_TAG, recipeCompound);
         compound.setBoolean(TAG_ALL_CHUNK_STORAGES, true);
         compound.setBoolean(TAG_NEW_COLONIES, true);

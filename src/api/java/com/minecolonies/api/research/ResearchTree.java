@@ -9,7 +9,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static com.minecolonies.api.research.ResearchConstants.TAG_RESEARCH_TREE;
 
@@ -21,47 +20,58 @@ public class ResearchTree
     /**
      * The map containing all researches by ID.
      */
-    private static final Map<String, IResearch> researchTree      = new HashMap<>();
+    private final Map<String, Map<String, IResearch>> researchTree = new HashMap<>();
 
     /**
      * Get a research by id.
      * @param id the id of the research.
+     * @param branch the branch of the research.
      * @return the IResearch object.
      */
-    public static IResearch getResearch(final String id)
+    public IResearch getResearch(final String branch, final String id)
     {
-        return researchTree.get(id);
+        return researchTree.get(branch).get(id).copy();
     }
 
     /**
      * Add a research to the tree.
      * @param research the research to add.
      */
-    public static void addResearch(final IResearch research)
+    public void addResearch(final String branch, final IResearch research)
     {
-        researchTree.put(research.getId(), research);
+        final Map<String, IResearch> branchMap;
+        if (researchTree.containsKey(branch))
+        {
+            branchMap = researchTree.get(branch);
+        }
+        else
+        {
+            branchMap = new HashMap<>();
+        }
+        branchMap.put(research.getId(), research);
+        researchTree.put(branch,branchMap);
     }
 
     /**
      * Write the research tree to NBT.
-     * @return the compound.
+     * @param compound the compound.
      */
-    public static NBTTagCompound writeToNBT()
+    public void writeToNBT(final NBTTagCompound compound)
     {
-        final NBTTagCompound compound = new NBTTagCompound();
-        @NotNull final NBTTagList citizenTagList = researchTree.values().stream().map(research -> StandardFactoryController.getInstance().serialize(research)).collect(NBTUtils.toNBTTagList());
+        @NotNull final NBTTagList citizenTagList = researchTree.values().stream().flatMap(map -> map.values().stream()).map(research -> StandardFactoryController.getInstance().serialize(research)).collect(NBTUtils.toNBTTagList());
         compound.setTag(TAG_RESEARCH_TREE, citizenTagList);
-        return compound;
     }
 
     /**
      * Read the research tree from NBT.
      * @param compound the compound to read it from.
+    +
      */
-    public static void readFromNBT(final NBTTagCompound compound)
+    public void readFromNBT(final NBTTagCompound compound)
     {
-        researchTree.putAll(NBTUtils.streamCompound(compound.getTagList(TAG_RESEARCH_TREE, Constants.NBT.TAG_COMPOUND))
-                          .map(researchCompound -> (IResearch) StandardFactoryController.getInstance().deserialize(researchCompound))
-                          .collect(Collectors.toMap(IResearch::getId, iResearch -> iResearch)));
+        researchTree.clear();
+        NBTUtils.streamCompound(compound.getTagList(TAG_RESEARCH_TREE, Constants.NBT.TAG_COMPOUND))
+                              .map(researchCompound -> (IResearch) StandardFactoryController.getInstance().deserialize(researchCompound))
+                              .forEach(research -> addResearch(research.getBranch(), research));
     }
 }

@@ -7,6 +7,8 @@ import com.minecolonies.api.colony.permissions.Rank;
 import com.minecolonies.api.colony.requestsystem.manager.IRequestManager;
 import com.minecolonies.api.colony.requestsystem.requester.IRequester;
 import com.minecolonies.api.configuration.Configurations;
+import com.minecolonies.api.research.ResearchEffects;
+import com.minecolonies.api.research.ResearchTree;
 import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.LanguageHandler;
 import com.minecolonies.api.util.constant.Suppression;
@@ -184,6 +186,11 @@ public class Colony implements IColony
      * The request manager assigned to the colony.
      */
     private IRequestManager requestManager;
+
+    /**
+     * The request manager assigned to the colony.
+     */
+    private IResearchManager researchManager = new ResearchManager();;
 
     /**
      * The NBTTag compound of the colony itself.
@@ -400,6 +407,11 @@ public class Colony implements IColony
 
         raidManager.readFromNBT(compound);
 
+        if (compound.hasKey(TAG_RESEARCH))
+        {
+            researchManager.readFromNBT(compound.getCompoundTag(TAG_RESEARCH));
+        }
+
         //  Workload
         workManager.readFromNBT(compound.getCompoundTag(TAG_WORK));
 
@@ -524,6 +536,10 @@ public class Colony implements IColony
         progressManager.writeToNBT(compound);
         raidManager.writeToNBT(compound);
 
+        @NotNull final NBTTagCompound researchManagerCompound = new NBTTagCompound();
+        researchManager.writeToNBT(researchManagerCompound);
+        compound.setTag(TAG_RESEARCH, researchManagerCompound);
+
         // Waypoints
         @NotNull final NBTTagList wayPointTagList = new NBTTagList();
         for (@NotNull final Map.Entry<BlockPos, IBlockState> entry : wayPoints.entrySet())
@@ -581,6 +597,18 @@ public class Colony implements IColony
     public boolean isRemote()
     {
         return false;
+    }
+
+    @Override
+    public ResearchTree getResearchTree()
+    {
+        return this.researchManager.getResearchTree();
+    }
+
+    @Override
+    public ResearchEffects getResearchEffects()
+    {
+        return this.researchManager.getResearchEffects();
     }
 
     /**

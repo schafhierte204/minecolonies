@@ -3,6 +3,8 @@ package com.minecolonies.api.colony;
 import com.minecolonies.api.colony.permissions.IPermissions;
 import com.minecolonies.api.colony.requestsystem.manager.IRequestManager;
 import com.minecolonies.api.colony.requestsystem.requester.IRequester;
+import com.minecolonies.api.research.ResearchEffects;
+import com.minecolonies.api.research.ResearchTree;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -164,4 +166,16 @@ public interface IColony
      * @return true if so.
      */
     boolean isRemote();
+
+    /**
+     * Getter for the research tree.
+     * @return the colony own research tree.
+     */
+    ResearchTree getResearchTree();
+
+    /**
+     * Get the colonies own research effects.
+     * @return the ResearchEffects object.
+     */
+    ResearchEffects getResearchEffects();
 }

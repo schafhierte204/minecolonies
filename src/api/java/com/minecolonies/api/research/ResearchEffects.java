@@ -43,17 +43,23 @@ public class ResearchEffects
         return null;
     }
 
+    /**
+     * Apply the effect to the research effects class.
+     * @param effect the effect to apply.
+     */
+    public void applyEffect(final IResearchEffect effect)
+    {
+        effectMap.put(effect.getId(), effect);
+    }
 
     /**
      * Write the research tree to NBT.
-     * @return the compound.
+     * @param compound the compound.
      */
-    public NBTTagCompound writeToNBT()
+    public void writeToNBT(final NBTTagCompound compound)
     {
-        final NBTTagCompound compound = new NBTTagCompound();
         @NotNull final NBTTagList citizenTagList = effectMap.values().stream().map(effect -> StandardFactoryController.getInstance().serialize(effect)).collect(NBTUtils.toNBTTagList());
         compound.setTag(TAG_RESEARCH_EFFECTS, citizenTagList);
-        return compound;
     }
 
     /**

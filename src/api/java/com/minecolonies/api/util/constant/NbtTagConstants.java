@@ -372,6 +372,11 @@ public final class NbtTagConstants
     public static final String TAG_LADDER_COUNTER = "ladder";
 
     /**
+     * Research manager compound TAG.
+     */
+    public static final String TAG_RESEARCH = "research";
+
+    /**
      * Lumberjack/Tree Tags for NBT
      */
     public static final String TAG_LUMBERJACK_STATISTICS = "lumberjackStatistics";
@@ -394,10 +399,10 @@ public final class NbtTagConstants
     /**
      * Archery building constants.
      */
-    public static final String TAG_COMBAT_TARGET = "combatTarget";
+    public static final String TAG_COMBAT_TARGET  = "combatTarget";
     public static final String TAG_COMBAT_PARTNER = "combatPartner";
-    public static final String TAG_PARTNER1 = "combatPartner1";
-    public static final String TAG_PARTNER2 = "combatPartner2";
+    public static final String TAG_PARTNER1       = "combatPartner1";
+    public static final String TAG_PARTNER2       = "combatPartner2";
 
     /**
      * Private constructor to hide the implicit one.

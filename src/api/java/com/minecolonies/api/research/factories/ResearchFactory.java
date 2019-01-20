@@ -4,7 +4,6 @@ import com.google.common.reflect.TypeToken;
 import com.minecolonies.api.colony.requestsystem.StandardFactoryController;
 import com.minecolonies.api.colony.requestsystem.factory.FactoryVoidInput;
 import com.minecolonies.api.colony.requestsystem.factory.IFactoryController;
-import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.research.*;
 import com.minecolonies.api.util.NBTUtils;
 import com.minecolonies.api.util.constant.TypeConstants;
@@ -12,8 +11,6 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraftforge.common.util.Constants;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.stream.Collectors;
 
 import static com.minecolonies.api.research.ResearchConstants.*;
 
@@ -56,9 +53,16 @@ public class ResearchFactory implements IResearchFactory
         compound.setTag(TAG_EFFECT, StandardFactoryController.getInstance().serialize(effect));
         compound.setInteger(TAG_DEPTH, effect.getDepth());
         compound.setInteger(TAG_PROGRESS, effect.getProgress());
+        compound.setBoolean(TAG_ONLY_CHILD, effect.isOnlyChild());
 
-        @NotNull final NBTTagList citizenTagList = effect.getCostList().stream().map(storage -> StandardFactoryController.getInstance().serialize(storage)).collect(NBTUtils.toNBTTagList());
-        compound.setTag(TAG_COST, citizenTagList);
+        @NotNull final NBTTagList childTagList = effect.getChilds().stream().map(child ->
+                                                     {
+                                                         final NBTTagCompound childCompound = new NBTTagCompound();
+                                                         childCompound.setString(TAG_CHILD, child);
+                                                         return childCompound;
+                                                     }).collect(NBTUtils.toNBTTagList());
+        compound.setTag(TAG_CHILDS, childTagList);
+
         return compound;
     }
 
@@ -74,14 +78,15 @@ public class ResearchFactory implements IResearchFactory
         final NBTTagCompound effect = (NBTTagCompound) nbt.getTag(TAG_EFFECT);
         final int depth = nbt.getInteger(TAG_DEPTH);
         final int progress = nbt.getInteger(TAG_PROGRESS);
+        final boolean onlyChild = nbt.getBoolean(TAG_ONLY_CHILD);
 
         final IResearch research = getNewInstance(id, parent, branch, desc, depth, StandardFactoryController.getInstance().deserialize(effect));
         research.setState(ResearchState.values()[state]);
         research.setProgress(progress);
-        research.setCostList((NBTUtils.streamCompound(nbt.getTagList(TAG_RESEARCH_TREE, Constants.NBT.TAG_COMPOUND))
-                                   .map(storage -> (ItemStorage) StandardFactoryController.getInstance().deserialize(storage))
-                                   .collect(Collectors.toList())));
+        research.loadCostFromConfig();
+        research.setOnlyChild(onlyChild);
 
+        NBTUtils.streamCompound(nbt.getTagList(TAG_CHILDS, Constants.NBT.TAG_COMPOUND)).forEach(compound -> research.addChild(compound.getString(TAG_CHILD)));
         return research;
     }
 }
