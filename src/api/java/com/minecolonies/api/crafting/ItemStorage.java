@@ -30,6 +30,11 @@ public class ItemStorage
     private final boolean shouldIgnoreNBTValue;
 
     /**
+     * The creative tab index of the storage.
+     */
+    private final int creativeTabIndex;
+
+    /**
      * Amount of the storage.
      */
     private int amount;
@@ -47,6 +52,7 @@ public class ItemStorage
         this.shouldIgnoreDamageValue = ignoreDamageValue;
         this.shouldIgnoreNBTValue = ignoreDamageValue;
         this.amount = amount;
+        this.creativeTabIndex = stack.getItem().getCreativeTab() != null ? stack.getItem().getCreativeTab().index : 0;
     }
 
     /**
@@ -61,7 +67,7 @@ public class ItemStorage
         this.stack = stack;
         this.shouldIgnoreDamageValue = ignoreDamageValue;
         this.shouldIgnoreNBTValue = shouldIgnoreNBTValue;
-        this.amount = amount;
+        this.creativeTabIndex = stack.getItem().getCreativeTab() != null ? stack.getItem().getCreativeTab().index : 0;
     }
 
     /**
@@ -76,6 +82,7 @@ public class ItemStorage
         this.shouldIgnoreDamageValue = ignoreDamageValue;
         this.shouldIgnoreNBTValue = ignoreDamageValue;
         this.amount = ItemStackUtils.getSize(stack);
+        this.creativeTabIndex = stack.getItem().getCreativeTab() != null ? stack.getItem().getCreativeTab().index : 0;
     }
 
     /**
@@ -89,6 +96,7 @@ public class ItemStorage
         this.shouldIgnoreDamageValue = false;
         this.shouldIgnoreNBTValue = false;
         this.amount = ItemStackUtils.getSize(stack);
+        this.creativeTabIndex = stack.getItem().getCreativeTab() != null ? stack.getItem().getCreativeTab().index : 0;
     }
 
     /**
@@ -150,6 +158,15 @@ public class ItemStorage
         return shouldIgnoreDamageValue;
     }
 
+    /**
+     * Getter for the creativeTab index of the storage.
+     * @return the index.
+     */
+    public int getCreativeTabIndex()
+    {
+        return creativeTabIndex;
+    }
+
     @Override
     public int hashCode()
     {
@@ -175,7 +192,9 @@ public class ItemStorage
 
         return stack.isItemEqual(that.getItemStack())
                 && (this.shouldIgnoreDamageValue || that.getDamageValue() == this.getDamageValue())
-                && (this.shouldIgnoreNBTValue || that.getItemStack().getTagCompound() == this.getItemStack().getTagCompound());
+                && (this.shouldIgnoreNBTValue
+                      || (that.getItemStack().getTagCompound() == null && this.getItemStack().getTagCompound() == null)
+                      || that.getItemStack().getTagCompound().equals(this.getItemStack().getTagCompound()));
     }
 
     /**

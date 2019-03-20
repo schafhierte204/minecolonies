@@ -71,13 +71,13 @@ public class BuildingBarracksTower extends AbstractBuildingGuards
     }
 
     @Override
-    public void requestUpgrade(final EntityPlayer player)
+    public void requestUpgrade(final EntityPlayer player, final BlockPos builder)
     {
         final int buildingLevel = getBuildingLevel();
         final AbstractBuilding building = getColony().getBuildingManager().getBuilding(barracks);
         if (building != null && buildingLevel < getMaxBuildingLevel() && buildingLevel < building.getBuildingLevel())
         {
-            requestWorkOrder(buildingLevel + 1);
+            requestWorkOrder(buildingLevel + 1, builder);
         }
         else
         {
@@ -127,9 +127,9 @@ public class BuildingBarracksTower extends AbstractBuildingGuards
     }
 
     @Override
-    public boolean hasAssignedCitizen()
+    public int getMaxInhabitants()
     {
-        return getAssignedCitizen().size() >= getBuildingLevel();
+        return getBuildingLevel();
     }
 
     /**

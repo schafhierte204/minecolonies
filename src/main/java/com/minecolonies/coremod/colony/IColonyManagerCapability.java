@@ -8,7 +8,6 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.util.Constants;
-import net.minecraftforge.fml.common.FMLCommonHandler;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
@@ -149,7 +148,7 @@ public interface IColonyManagerCapability
         public NBTBase writeNBT(@NotNull final Capability<IColonyManagerCapability> capability, @NotNull final IColonyManagerCapability instance, @Nullable final EnumFacing side)
         {
             final NBTTagCompound compound = new NBTTagCompound();
-            compound.setTag(TAG_COLONIES, instance.getColonies().stream().map(colony -> colony.writeToNBT(new NBTTagCompound())).collect(NBTUtils.toNBTTagList()));
+            compound.setTag(TAG_COLONIES, instance.getColonies().stream().map(Colony::getColonyTag).collect(NBTUtils.toNBTTagList()));
             compound.setInteger(TAG_MISSING_CHUNKS, instance.getMissingChunksToLoad());
             return compound;
         }

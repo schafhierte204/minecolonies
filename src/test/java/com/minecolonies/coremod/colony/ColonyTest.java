@@ -76,7 +76,7 @@ public class ColonyTest
     @Test
     public void testToggleOverManager()
     {
-        colony.getBarbManager().setCanHaveBarbEvents(true);
+        colony.getRaiderManager().setCanHaveRaiderEvents(true);
         assertNotNull(colony.getColonyTag());
 
     }
@@ -86,6 +86,7 @@ public class ColonyTest
     {
         final NBTTagCompound compound = colony.getColonyTag();
         final Colony test = Colony.loadColony(compound, world);
+        test.setActive(false);
         assertNotNull(test.getColonyTag());
         assertEquals(compound, test.getColonyTag());
     }

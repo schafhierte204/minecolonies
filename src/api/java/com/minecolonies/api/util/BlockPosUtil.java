@@ -3,7 +3,6 @@ package com.minecolonies.api.util;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.init.Blocks;
@@ -13,6 +12,8 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.NonNullList;
+import net.minecraft.util.Rotation;
+import net.minecraft.util.Tuple;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
@@ -21,7 +22,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Random;
 
+import static com.minecolonies.api.util.constant.Constants.*;
 import static com.minecolonies.api.util.constant.TranslationConstants.*;
 
 /**
@@ -52,13 +55,63 @@ public final class BlockPosUtil
      * @param name     Name of the tag.
      * @param pos      Coordinates to write to NBT.
      */
-    public static void writeToNBT(@NotNull final NBTTagCompound compound, final String name, @NotNull final BlockPos pos)
+    public static NBTTagCompound writeToNBT(@NotNull final NBTTagCompound compound, final String name, @NotNull final BlockPos pos)
     {
         @NotNull final NBTTagCompound coordsCompound = new NBTTagCompound();
         coordsCompound.setInteger("x", pos.getX());
         coordsCompound.setInteger("y", pos.getY());
         coordsCompound.setInteger("z", pos.getZ());
         compound.setTag(name, coordsCompound);
+        return compound;
+    }
+
+    /**
+     * Searches a random direction.
+     *
+     * @param random a random object.
+     * @return a tuple of two directions.
+     */
+    private static Tuple<EnumFacing, EnumFacing> getRandomDirectionTuple(final Random random)
+    {
+        return new Tuple<>(EnumFacing.random(random), EnumFacing.random(random));
+    }
+
+    /**
+     * Gets a random position within a certain range for wandering around.
+     *
+     * @param world           the world.
+     * @param currentPosition the current position.
+     * @param def             the default position if none was found.
+     * @return the BlockPos.
+     */
+    public static BlockPos getRandomPosition(final World world, final BlockPos currentPosition, final BlockPos def)
+    {
+        final Random random = new Random();
+
+        int tries = 0;
+        BlockPos pos = null;
+        while (pos == null
+                 || world.getBlockState(pos).getMaterial().isLiquid()
+                 || !world.getBlockState(pos.down()).getMaterial().isSolid()
+                 || (!world.isAirBlock(pos) && !world.isAirBlock(pos.up())))
+        {
+            final Tuple<EnumFacing, EnumFacing> direction = getRandomDirectionTuple(random);
+            pos =
+              new BlockPos(currentPosition)
+                .offset(direction.getFirst(), random.nextInt(LENGTH_RANGE))
+                .offset(direction.getSecond(), random.nextInt(LENGTH_RANGE))
+                .up(random.nextInt(UP_DOWN_RANGE))
+                .down(random.nextInt(UP_DOWN_RANGE));
+
+            if (tries >= MAX_TRIES)
+            {
+                return def;
+            }
+
+            tries++;
+        }
+
+        return pos;
     }
 
     /**
@@ -173,15 +226,16 @@ public final class BlockPosUtil
      * this checks that you are not in liquid.  Will check for all liquids, even
      * those from other mods before TP
      *
-     * @param blockPos for the current block LOC
      * @param sender   uses the player to get the world
+     * @param blockPos for the current block LOC
      * @return isSafe true=safe false=water or lava
      */
-    public static boolean isPositionSafe(@NotNull final ICommandSender sender, final BlockPos blockPos)
+    public static boolean isPositionSafe(@NotNull final World sender, final BlockPos blockPos)
     {
-        return sender.getEntityWorld().getBlockState(blockPos).getBlock() != Blocks.AIR
-                 && !sender.getEntityWorld().getBlockState(blockPos).getMaterial().isLiquid()
-                 && !sender.getEntityWorld().getBlockState(blockPos.up()).getMaterial().isLiquid();
+        return sender.getBlockState(blockPos).getBlock() != Blocks.AIR
+                 && !sender.getBlockState(blockPos).getMaterial().isLiquid()
+                 && !sender.getBlockState(blockPos.down()).getMaterial().isLiquid()
+          && sender.getWorldBorder().contains(blockPos);
     }
 
     /**
@@ -216,6 +270,11 @@ public final class BlockPosUtil
                 foundland = tempPos;
             }
             mid = (bot + top) / 2;
+        }
+
+        if (world.getBlockState(tempPos).getMaterial().isSolid())
+        {
+            return foundland.up();
         }
 
         return foundland;
@@ -274,11 +333,11 @@ public final class BlockPosUtil
     }
 
     /**
-     * Squared distance between two BlockPos.
+     * X+Y Distance between two BlockPos.
      *
      * @param block1 position one.
      * @param block2 position two.
-     * @return squared distance.
+     * @return X+Y distance
      */
     public static long getDistance2D(@NotNull final BlockPos block1, @NotNull final BlockPos block2)
     {
@@ -535,5 +594,26 @@ public final class BlockPosUtil
         }
 
         return dist.toString();
+    }
+
+    /**
+     * Get the rotation enum value from the amount of rotations.
+     *
+     * @param rotations the amount of rotations.
+     * @return the enum Rotation.
+     */
+    public static Rotation getRotationFromRotations(final int rotations)
+    {
+        switch (rotations)
+        {
+            case ROTATE_ONCE:
+                return Rotation.CLOCKWISE_90;
+            case ROTATE_TWICE:
+                return Rotation.CLOCKWISE_180;
+            case ROTATE_THREE_TIMES:
+                return Rotation.COUNTERCLOCKWISE_90;
+            default:
+                return Rotation.NONE;
+        }
     }
 }

@@ -45,7 +45,7 @@ public class ProgressManager implements IProgressManager
     private boolean printProgress = true;
 
     /**
-     * Creates the BarbarianManager for a colony.
+     * Creates the progress for a colony.
      * @param colony the colony.
      */
     public ProgressManager(final Colony colony)
@@ -72,6 +72,10 @@ public class ProgressManager implements IProgressManager
         if (total == 1)
         {
             trigger(FIRST_CITIZEN_SPAWNED);
+        }
+        else if (total == 4)
+        {
+            trigger(FOUR_CITIZENS_SPAWNED);
         }
         else if (total == 5)
         {
@@ -216,6 +220,5 @@ public class ProgressManager implements IProgressManager
         compound.setInteger(TAG_PROGRESS_TYPE, type.ordinal());
         return compound;
     }
-
 }
 

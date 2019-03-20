@@ -6,8 +6,8 @@ import com.minecolonies.api.util.constant.ToolType;
 import com.minecolonies.api.util.constant.TranslationConstants;
 import com.minecolonies.coremod.colony.jobs.AbstractJob;
 import com.minecolonies.coremod.entity.ai.basic.AbstractEntityAIInteract;
-import com.minecolonies.coremod.entity.ai.util.AIState;
-import com.minecolonies.coremod.entity.ai.util.AITarget;
+import com.minecolonies.coremod.entity.ai.statemachine.AITarget;
+import com.minecolonies.coremod.entity.ai.statemachine.states.IAIState;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.passive.EntityAnimal;
 import net.minecraft.item.Item;
@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static com.minecolonies.api.util.constant.ToolLevelConstants.TOOL_LEVEL_WOOD_OR_GOLD;
-import static com.minecolonies.coremod.entity.ai.util.AIState.*;
+import static com.minecolonies.coremod.entity.ai.statemachine.states.AIWorkerState.*;
 
 /**
  * Abstract class for all Citizen Herder AIs
@@ -36,12 +36,6 @@ public abstract class AbstractEntityAIHerder<J extends AbstractJob, T extends En
      * How many animals per hut level the worker should max have.
      */
     private static final int ANIMAL_MULTIPLIER = 2;
-
-    /**
-     * Tools and Items needed by the worker.
-     */
-    public final List<ToolType>  toolsNeeded = new ArrayList<>();
-    public final List<ItemStack> itemsNeeded = new ArrayList<>();
 
     /**
      * Amount of animals needed to bread.
@@ -113,11 +107,35 @@ public abstract class AbstractEntityAIHerder<J extends AbstractJob, T extends En
     }
 
     /**
+     * Get the extra tools needed for this job.
+     * @return a list of tools or empty.
+     */
+    @NotNull
+    public List<ToolType> getExtraToolsNeeded()
+    {
+        final List<ToolType> toolsNeeded = new ArrayList<>();
+        toolsNeeded.add(ToolType.AXE);
+        return toolsNeeded;
+    }
+
+    /**
+     * Get the extra items needed for this job.
+     * @return a list of items needed or empty.
+     */
+    @NotNull
+    public List<ItemStack> getExtraItemsNeeded()
+    {
+        final List<ItemStack> itemsNeeded = new ArrayList<>();
+        itemsNeeded.add(getBreedingItems());
+        return itemsNeeded;
+    }
+
+    /**
      * Decides what job the herder should switch to, breeding or Butchering.
      *
-     * @return The next {@link AIState} the herder should switch to, after executing this method.
+     * @return The next {@link IAIState} the herder should switch to, after executing this method.
      */
-    public AIState decideWhatToDo()
+    public IAIState decideWhatToDo()
     {
         setDelay(DECIDING_DELAY);
 
@@ -155,9 +173,9 @@ public abstract class AbstractEntityAIHerder<J extends AbstractJob, T extends En
     /**
      * Redirects the herder to their building.
      *
-     * @return The next {@link AIState}.
+     * @return The next {@link IAIState}.
      */
-    private AIState startWorkingAtOwnBuilding()
+    private IAIState startWorkingAtOwnBuilding()
     {
         worker.getCitizenStatusHandler().setLatestStatus(new TextComponentTranslation(TranslationConstants.COM_MINECOLONIES_COREMOD_STATUS_WORKER_GOINGTOHUT));
         if (walkToBuilding())
@@ -170,14 +188,12 @@ public abstract class AbstractEntityAIHerder<J extends AbstractJob, T extends En
     /**
      * Prepares the herder for herding
      *
-     * @return The next {@link AIState}.
+     * @return The next {@link IAIState}.
      */
-    private AIState prepareForHerding()
+    private IAIState prepareForHerding()
     {
-        toolsNeeded.add(ToolType.AXE);
-        itemsNeeded.add(getBreedingItems());
-
-        for (final ToolType tool : toolsNeeded)
+        setDelay(DECIDING_DELAY);
+        for (final ToolType tool : getExtraToolsNeeded())
         {
             if (checkForToolOrWeapon(tool))
             {
@@ -185,20 +201,20 @@ public abstract class AbstractEntityAIHerder<J extends AbstractJob, T extends En
             }
         }
 
-        for (final ItemStack item : itemsNeeded)
+        for (final ItemStack item : getExtraItemsNeeded())
         {
             checkIfRequestForItemExistOrCreateAsynch(item);
         }
-        setDelay(DECIDING_DELAY);
+
         return DECIDE;
     }
 
     /**
      * Butcher some animals (Preferably Adults) that the herder looks after.
      *
-     * @return The next {@link AIState}.
+     * @return The next {@link IAIState}.
      */
-    private AIState butcherAnimals()
+    private IAIState butcherAnimals()
     {
         setDelay(BUTCHER_DELAY);
         final List<T> animals = new ArrayList<>(searchForAnimals());
@@ -229,7 +245,7 @@ public abstract class AbstractEntityAIHerder<J extends AbstractJob, T extends En
         if (!animal.isEntityAlive())
         {
             worker.getCitizenExperienceHandler().addExperience(1.0);
-            incrementActionsDoneAndDecSaturation();
+            worker.decreaseSaturationForAction();
         }
 
         return HERDER_BUTCHER;
@@ -238,9 +254,9 @@ public abstract class AbstractEntityAIHerder<J extends AbstractJob, T extends En
     /**
      * Breed some animals together.
      *
-     * @return The next {@link AIState}.
+     * @return The next {@link IAIState}.
      */
-    private AIState breedAnimals()
+    private IAIState breedAnimals()
     {
         setDelay(BREEDING_DELAY);
 
@@ -248,7 +264,7 @@ public abstract class AbstractEntityAIHerder<J extends AbstractJob, T extends En
 
         final EntityAnimal animalOne = animals
                                          .stream()
-                                         .filter(animal -> animal.getGrowingAge() == 0)
+                                         .filter(animal -> !animal.isChild())
                                          .findAny()
                                          .orElse(null);
 
@@ -288,9 +304,9 @@ public abstract class AbstractEntityAIHerder<J extends AbstractJob, T extends En
      * Specifically useful when he possibly leaves Butchered
      * drops OR with chickens (that drop feathers and etc)!
      *
-     * @return The next {@link AIState}.
+     * @return The next {@link IAIState}.
      */
-    private AIState pickupItems()
+    private IAIState pickupItems()
     {
         final List<EntityItem> items = new ArrayList<>(searchForItemsInArea());
 
@@ -405,7 +421,8 @@ public abstract class AbstractEntityAIHerder<J extends AbstractJob, T extends En
                 //noinspection ConstantConditions
                 animal.setInLove(null);
                 worker.swingArm(EnumHand.MAIN_HAND);
-                InventoryUtils.removeStackFromItemHandler(new InvWrapper(worker.getInventoryCitizen()), getBreedingItem());
+                InventoryUtils.reduceStackInItemHandler(new InvWrapper(worker.getInventoryCitizen()), getBreedingItem());
+                worker.decreaseSaturationForAction();
             }
         }
     }
@@ -508,6 +525,7 @@ public abstract class AbstractEntityAIHerder<J extends AbstractJob, T extends En
             worker.swingArm(EnumHand.MAIN_HAND);
             animal.attackEntityFrom(new DamageSource(worker.getName()), (float) BUTCHERING_ATTACK_DAMAGE);
             worker.getHeldItemMainhand().damageItem(1, animal);
+            worker.decreaseSaturationForAction();
         }
     }
 

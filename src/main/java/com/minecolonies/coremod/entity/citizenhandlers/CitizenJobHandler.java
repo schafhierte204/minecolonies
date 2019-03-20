@@ -22,38 +22,12 @@ public class CitizenJobHandler
     private final EntityCitizen citizen;
 
     /**
-     * The last job of the citizen.
-     */
-    private String lastJob = "";
-
-    /**
      * Constructor for the experience handler.
      * @param citizen the citizen owning the handler.
      */
     public CitizenJobHandler(final EntityCitizen citizen)
     {
         this.citizen = citizen;
-    }
-
-    /**
-     * Getter for the last job.
-     *
-     * @return the last job he had.
-     */
-    @NotNull
-    public String getLastJob()
-    {
-        return this.lastJob;
-    }
-
-    /**
-     * Sets the last job of the citizen.
-     *
-     * @param jobName the job he last had.
-     */
-    public void setLastJob(@NotNull final String jobName)
-    {
-        this.lastJob = jobName;
     }
 
     /**
@@ -118,7 +92,7 @@ public class CitizenJobHandler
 
         if (job != null)
         {
-            job.addTasks(citizen.tasks);
+            job.addWorkerAIToTaskList(citizen.tasks);
             if (citizen.ticksExisted > 0 && citizen.getCitizenColonyHandler().getWorkBuilding() != null)
             {
                 BlockPosUtil.tryMoveLivingToXYZ(citizen, citizen.getCitizenColonyHandler().getWorkBuilding().getLocation());

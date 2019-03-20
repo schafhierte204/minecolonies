@@ -1,6 +1,7 @@
 package com.minecolonies.api.util.constant;
 
 import com.minecolonies.api.util.LanguageHandler;
+import net.minecraft.util.ResourceLocation;
 
 import static com.minecolonies.api.util.constant.TranslationConstants.*;
 
@@ -50,6 +51,11 @@ public final class WindowConstants
     public static final String BUTTON_RECALL = "recall";
 
     /**
+     * Id of the hire Citizen button in the GUI.
+     */
+    public static final String BUTTON_HIRE = "hire";
+
+    /**
      * Id of the change specialization button in the GUI.
      */
     public static final String BUTTON_CHANGE_SPEC = "changeSpec";
@@ -73,6 +79,11 @@ public final class WindowConstants
      * Id of the toggle job button in the GUI.
      */
     public static final String BUTTON_TOGGLE_HOUSING = "toggleHousing";
+
+    /**
+     * Id of the toggle move in button in the GUI.
+     */
+    public static final String BUTTON_TOGGLE_MOVE_IN = "toggleMoveIn";
 
     /**
      * Id of the toggle print progress button in the GUI.
@@ -420,6 +431,11 @@ public final class WindowConstants
     public static final String DROPDOWN_STYLE_ID = "style";
 
     /**
+     * This drop down list is used to choose which builder should be used.
+     */
+    public static final String DROPDOWN_BUILDER_ID = "worker";
+
+    /**
      * This button is used to set the next available style.
      */
     public static final String BUTTON_NEXT_STYLE_ID = "nextStyle";
@@ -605,11 +621,6 @@ public final class WindowConstants
     public static final String INPUT_RANGE_NAME = "range";
 
     /**
-     * Resource suffix of the multiblock GUI.
-     */
-    public static final String MULTI_BLOCK_RESOURCE_SUFFIX = ":gui/windowmultiblock.xml";
-
-    /**
      * Id of the done button in the GUI.
      */
     public static final String BUTTON_REMOVE = "remove";
@@ -680,6 +691,7 @@ public final class WindowConstants
 
     public static final String LABEL_CONSTRUCTION_NAME =  "constructionName";
     public static final String LABEL_CONSTRUCTION_POS =  "constructionPos";
+    public static final String LABEL_PROGRESS =  "progress";
 
     public static final String LABEL_PAGE_NUMBER = "pageNum";
 
@@ -784,7 +796,7 @@ public final class WindowConstants
     public static final int XP_BAR_EMPTY_ROW = 64;
 
     /**
-     * The row where the emtpy Happiness bar starts. 
+     * The row where the emtpy Happiness bar starts.
      */
 
     public static final int HAPPINESS_BAR_EMPTY_ROW = 74;
@@ -795,29 +807,74 @@ public final class WindowConstants
     public static final int XP_BAR_FULL_ROW = 69;
 
     /**
-     * The row where the full happiness bar starts. 
+     * The row where the full happiness bar starts.
      */
     public static final int HAPPINESS_BAR_FULL_ROW = 79;
 
     /**
-     * Row position of the empty heart icon.
+     * X position of the empty heart icon.
      */
-    public static final int EMPTY_HEART_ICON_ROW_POS = 16;
+    public static final int EMPTY_HEART_ICON_X = 16;
 
     /**
-     * Row position of the full heart icon.
+     * X position of the full red heart icon.
      */
-    public static final int FULL_HEART_ICON_ROW_POS = 53;
+    public static final int RED_HEART_ICON_X = 52;
 
     /**
-     * Row position of the half/full heart icon.
+     * X position of the half red heart icon.
      */
-    public static final int HALF_HEART_ICON_ROW_POS = 62;
+    public static final int HALF_RED_HEART_ICON_X = 61;
 
     /**
-     * Column position of the heart icons.
+     * X position of the full golden heart:
      */
-    public static final int HEART_ICON_COLUMN = 0;
+    public static final int GOLD_HEART_ICON_X = 160;
+
+    /**
+     * X position of the full golden heart:
+     */
+    public static final int HALF_GOLD_HEART_ICON_X = 169;
+
+    /**
+     * Y position of the empty,red,golden heart icons.
+     */
+    public static final int HEART_ICON_MC_Y = 0;
+
+    /**
+     * The resourcelocation for green and blue hearts
+     */
+    public static final ResourceLocation GREEN_BLUE_ICON = new ResourceLocation("minecolonies:textures/gui/citizen/green_bluehearts.png");
+
+    /**
+     * X position of the full green heart
+     */
+    public static final int GREEN_HEART_ICON_X = 0;
+
+    /**
+     * X position of the full green heart
+     */
+    public static final int GREEN_HALF_HEART_ICON_X = 8;
+
+    /**
+     * Y position of the green hearts
+     */
+    public static final int GREEN_HEARTS_ICON_Y = 0;
+
+    /**
+     * X position of the full blue heart
+     */
+    public static final int BLUE_HEART_ICON_X = 0;
+
+    /**
+     * X position of the full blue heart
+     */
+    public static final int BLUE_HALF_HEART_ICON_X = 8;
+
+    /**
+     * Y position of the blue hearts
+     */
+    public static final int BLUE_HEARTS_ICON_Y = 8;
 
     /**
      * Dimension of the hearts.
@@ -838,6 +895,36 @@ public final class WindowConstants
      * The position y where the heart is placed.
      */
     public static final int HEART_ICON_POS_Y = 10;
+
+    /**
+     * The maximum amount of Shown hearts
+     */
+    public static final int MAX_HEART_ICONS = 10;
+
+    /**
+     * HP Value of a empty heart
+     */
+    public static final int EMPTY_HEART_VALUE = 0;
+
+    /**
+     * HP Value of a red heart
+     */
+    public static final int RED_HEART_VALUE = 2;
+
+    /**
+     * HP Value of a golden heart
+     */
+    public static final int GOLDEN_HEART_VALUE = 4;
+
+    /**
+     * HP Value of a green heart
+     */
+    public static final int GREEN_HEART_VALUE = 6;
+
+    /**
+     * HP Value of the blue heart
+     */
+    public static final int BLUE_HEART_VALUE = 8;
 
     /**
      * The position y where the saturation is placed.
@@ -875,7 +962,7 @@ public final class WindowConstants
     public static final String WINDOW_ID_XP = "xpLabel";
 
     /**
-     * The label to find the happiness label in the gui. 
+     * The label to find the happiness label in the gui.
      */
     public static final String WINDOW_ID_HAPPINESS = "happinessLabel";
 
@@ -888,6 +975,11 @@ public final class WindowConstants
      * The label to find healthBar in the gui.
      */
     public static final String WINDOW_ID_HEALTHBAR = "healthBar";
+
+    /**
+     * THe label to find the HealthLavel
+     */
+    public static final String WINDOW_ID_HEALTHLABEL = "healthLabel";
 
     /**
      * The position of the empty saturation icon.
@@ -910,7 +1002,7 @@ public final class WindowConstants
     public static final String WINDOW_ID_SATURATION_BAR = "saturationBar";
 
     /**
-     * The saturation bar of the citizen. 
+     * The saturation bar of the citizen.
      */
     public static final String WINDOW_ID_HAPPINESS_BAR = "happinessBar";
 
@@ -993,7 +1085,101 @@ public final class WindowConstants
      * ID for happiness modifier view
      */
     public static final String HAPPINESS_MODIFIER_PANE = "happinessModifierView";
-    
+
+    /**
+     * Warehouse constants
+     */
+    public static final String HUT_WAREHOUSE_RESOURCE_SUFFIX = ":gui/windowhutwarehouse.xml";
+    public static final String SORT_WAREHOUSE_BUTTON         = "sort";
+
+    /**
+     * Postbox constants.
+     */
+    public static final String INPUT_NAME     = "name";
+    public static final String WINDOW_POSTBOX = ":gui/windowpostbox.xml";
+    public static final String INPUT_QTY    = "qty";
+    public static final String BUTTON_REQUEST = "request";
+
+    /**
+     * Id of the done button in the GUI.
+     */
+    public static final String BUTTON_DONE = "done";
+
+    /**
+     * Id of the citizen name in the GUI.
+     */
+    public static final String CITIZEN_LABEL = "citizen";
+
+    /**
+     * Id of the citizen list in the GUI.
+     */
+    public static final String CITIZEN_LIST = "unassigned";
+
+    /**
+     * Assign button of the gui.
+     */
+    public static final String CITIZEN_DONE = "done";
+
+    /**
+     * Link to the xml file of the window.
+     */
+    public static final String ASSIGN_CITIZEN_RESOURCE_SUFFIX = ":gui/windowAssignCitizen.xml";
+
+    /**
+     * Id of the job label in the GUI.
+     */
+    public static final String CITIZEN_JOB = "job";
+
+    /**
+     * Id of the job label in the GUI.
+     */
+    public static final String CITIZEN_LIVING = "living";
+
+    /**
+     * Edit button for the hut name.
+     */
+    public static final String BUTTON_EDIT_NAME = "editName";
+
+    /**
+     * Id of the done button in the GUI.
+     */
+    public static final String BUTTON_MODE = "mode";
+
+    /**
+     * Id of the citizen list in the GUI.
+     */
+    public static final String CITIZEN_LIST_UNEMP = "unemployed";
+
+    /**
+     * Id of the attributes label in the GUI.
+     */
+    public static final String ATTRIBUTES_LABEL = "attributes";
+
+    /**
+     * Link to the xml file of the window.
+     */
+    public static final String HIRE_WORKER_SUFFIX = ":gui/windowhireworker.xml";
+
+    /**
+     * Id of the fire button
+     */
+    public static final String BUTTON_FIRE = "fire";
+
+    /**
+     * Id of the automatic hiring warning
+     */
+    public static final String AUTO_HIRE_WARN = "autoHireWarn";
+
+    /**
+     * Id of the pause button
+     */
+    public static final String BUTTON_PAUSE = "pause";
+
+    /**
+     * Id of the pause button
+     */
+    public static final String BUTTON_RESTART = "restart";
+
     /**
      * public constructor to hide implicit public one.
      */

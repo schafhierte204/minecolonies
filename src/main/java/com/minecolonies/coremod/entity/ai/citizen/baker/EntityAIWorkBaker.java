@@ -1,14 +1,15 @@
 package com.minecolonies.coremod.entity.ai.citizen.baker;
 
 import com.minecolonies.api.crafting.IRecipeStorage;
+import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.ItemStackUtils;
 import com.minecolonies.coremod.colony.buildings.workerbuildings.BuildingBaker;
 import com.minecolonies.coremod.colony.jobs.JobBaker;
 import com.minecolonies.coremod.entity.EntityCitizen;
 import com.minecolonies.coremod.entity.ai.basic.AbstractEntityAISkill;
-import com.minecolonies.coremod.entity.ai.util.AIState;
-import com.minecolonies.coremod.entity.ai.util.AITarget;
+import com.minecolonies.coremod.entity.ai.statemachine.AITarget;
+import com.minecolonies.coremod.entity.ai.statemachine.states.IAIState;
 import net.minecraft.block.BlockFurnace;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
@@ -25,26 +26,22 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static com.minecolonies.api.util.constant.TranslationConstants.COM_MINECOLONIES_COREMOD_ENTITY_BAKER_NO_FURNACES;
-import static com.minecolonies.coremod.entity.ai.util.AIState.*;
+import static com.minecolonies.api.util.constant.TranslationConstants.BAKER_HAS_NO_FURNACES_MESSAGE;
+import static com.minecolonies.api.util.constant.TranslationConstants.BAKER_HAS_NO_RECIPES;
+import static com.minecolonies.coremod.entity.ai.statemachine.states.AIWorkerState.*;
 
 /**
- * Fisherman AI class.
- * <p>
- * A fisherman has some ponds where
- * he randomly selects one and fishes there.
- * <p>
- * To keep it immersive he chooses his place at random around the pond.
+ * Baker AI class.
  */
 public class EntityAIWorkBaker extends AbstractEntityAISkill<JobBaker>
 {
     /**
-     * How often should intelligence factor into the fisherman's skill modifier.
+     * How often should intelligence factor into the baker's skill modifier.
      */
     private static final int INTELLIGENCE_MULTIPLIER = 2;
 
     /**
-     * How often should dexterity factor into the fisherman's skill modifier.
+     * How often should dexterity factor into the baker's skill modifier.
      */
     private static final int DEXTERITY_MULTIPLIER = 1;
 
@@ -105,10 +102,10 @@ public class EntityAIWorkBaker extends AbstractEntityAISkill<JobBaker>
      */
     private int currentRecipe = -1;
     /**
-     * Constructor for the Fisherman.
-     * Defines the tasks the fisherman executes.
+     * Constructor for the Baker.
+     * Defines the tasks the baker executes.
      *
-     * @param job a fisherman job to use.
+     * @param job a baker job to use.
      */
     public EntityAIWorkBaker(@NotNull final JobBaker job)
     {
@@ -137,7 +134,7 @@ public class EntityAIWorkBaker extends AbstractEntityAISkill<JobBaker>
     /**
      * @return new state of the baker
      */
-    private AIState finishing()
+    private IAIState finishing()
     {
         if (currentBakingProduct == null || currentBakingProduct.getState() != ProductState.BAKED)
         {
@@ -182,7 +179,7 @@ public class EntityAIWorkBaker extends AbstractEntityAISkill<JobBaker>
     }
 
     /**
-     * Returns the fisherman's work building.
+     * Returns the baker's work building.
      *
      * @return building instance
      */
@@ -211,7 +208,7 @@ public class EntityAIWorkBaker extends AbstractEntityAISkill<JobBaker>
      * @return new state based on what is happening with
      * removal of item from furnace
      */
-    private AIState takeFromOven()
+    private IAIState takeFromOven()
     {
         if (currentFurnace == null)
         {
@@ -225,6 +222,7 @@ public class EntityAIWorkBaker extends AbstractEntityAISkill<JobBaker>
 
         final BakingProduct bakingProduct = getOwnBuilding().getFurnacesWithProduct().get(currentFurnace);
         getOwnBuilding().removeProductFromFurnace(currentFurnace);
+        worker.decreaseSaturationForAction();
         if (bakingProduct != null)
         {
             getOwnBuilding().addToTasks(bakingProduct.getState(), bakingProduct);
@@ -238,9 +236,9 @@ public class EntityAIWorkBaker extends AbstractEntityAISkill<JobBaker>
     /**
      * Prepares the baker for baking and requests ingredients.
      *
-     * @return the next AIState
+     * @return the next IAIState
      */
-    private AIState kneadTheDough()
+    private IAIState kneadTheDough()
     {
         if (walkToBuilding())
         {
@@ -272,6 +270,7 @@ public class EntityAIWorkBaker extends AbstractEntityAISkill<JobBaker>
 	        if (progress >= getRequiredProgressForKneading())
 	        {
 	            worker.setHeldItem(EnumHand.MAIN_HAND, ItemStackUtils.EMPTY);
+                worker.decreaseSaturationForAction();
 	            progress = 0;
 	            currentBakingProduct.nextState();
 	            getOwnBuilding().removeFromTasks(ProductState.RAW, currentBakingProduct);
@@ -291,59 +290,28 @@ public class EntityAIWorkBaker extends AbstractEntityAISkill<JobBaker>
      *
      * @return the next state to transit to.
      */
-    private AIState createNewProduct()
+    private IAIState createNewProduct()
     {
     	progress = 0;
-
-        boolean recipeFound = false;
-
-        IRecipeStorage storage = null;
         final BuildingBaker building = getOwnBuilding();
         currentRecipe++;
-        if (currentRecipe + 1 > BakerRecipes.getRecipes().size())
+        if (currentRecipe >= building.getCopyOfAllowedItems().size())
         {
             currentRecipe = 0;
         }
 
-        for (int i = currentRecipe; i < BakerRecipes.getRecipes().size(); i++)
-        {
-            if (building.isRecipeAllowed(i))
-            {
-                storage = BakerRecipes.getRecipes().get(i);
-                currentRecipe = i;
-                recipeFound = true;
-                break;
-            }
-        }
-
-        if (!recipeFound && currentRecipe > 0)
-        {
-            for (int i = 0; i <= currentRecipe; i++)
-            {
-                if (building.isRecipeAllowed(i))
-                {
-                    storage = BakerRecipes.getRecipes().get(i);
-                    currentRecipe = i;
-                    recipeFound = true;
-                    break;
-                }
-            }
-
-        }
-
-        if (recipeFound)
-        {
-            final BakingProduct bakingProduct = new BakingProduct(storage.getPrimaryOutput().copy(), currentRecipe);
-            building.addToTasks(bakingProduct.getState(), bakingProduct);
-            currentBakingProduct = bakingProduct;
-            return getState();
-        }
-        else
+        final ItemStorage itemStorage = building.getCopyOfAllowedItems().get(currentRecipe);
+        IRecipeStorage recipeStorage = BakerRecipes.getRecipes().stream().filter(recipe -> recipe.getPrimaryOutput().isItemEqual(itemStorage.getItemStack())).findFirst().orElse(null);
+        if (recipeStorage == null)
         {
             setDelay(UNABLE_TO_CRAFT_DELAY);
             return IDLE;
         }
 
+        final BakingProduct bakingProduct = new BakingProduct(recipeStorage.getPrimaryOutput().copy(), BakerRecipes.getRecipes().indexOf(recipeStorage));
+        building.addToTasks(bakingProduct.getState(), bakingProduct);
+        currentBakingProduct = bakingProduct;
+        return getState();
     }
 
     /**
@@ -352,23 +320,40 @@ public class EntityAIWorkBaker extends AbstractEntityAISkill<JobBaker>
      * @param storage the given storage.
      * @return the next state to transit to.
      */
-    private AIState craftNewProduct(final IRecipeStorage storage)
+    private IAIState craftNewProduct(final IRecipeStorage storage)
     {
+        final List<ItemStack> requestList = new ArrayList<>();
+        for (final ItemStorage stack : storage.getCleanedInput())
+        {
+            if (stack.getItem() != Items.WHEAT)
+            {
+                requestList.add(stack.getItemStack());
+            }
+            else
+            {
+                final ItemStack copy = stack.getItemStack();
+                copy.setCount(copy.getMaxStackSize());
+                requestList.add(copy);
+            }
+        }
+        checkIfRequestForItemExistOrCreateAsynch(requestList.toArray(new ItemStack[0]));
+
+
         final List<IItemHandler> handlers = getOwnBuilding().getHandlers();
-        if (storage.canFullFillRecipe(handlers.toArray(new IItemHandler[handlers.size()])))
+        if (storage.canFullFillRecipe(handlers.toArray(new IItemHandler[0])))
         {
             final List<ItemStack> list = new ArrayList<>();
 
 	        ItemStack copy = null;
-	        for (final ItemStack stack : storage.getInput())
+	        for (final ItemStorage stack : storage.getCleanedInput())
 	        {
 	            if (stack.getItem() != Items.WHEAT)
 	            {
-	                list.add(stack);
+	                list.add(stack.getItemStack());
 	            }
 	            else
 	            {
-	                copy = stack.copy();
+	                copy = stack.getItemStack().copy();
 	            }
 	        }
 
@@ -385,9 +370,6 @@ public class EntityAIWorkBaker extends AbstractEntityAISkill<JobBaker>
 	            list.add(copy);
 	        }
 
-	        final ItemStack[] arrayToRequestAndRetrieve = list.toArray(new ItemStack[list.size()]);
-	        checkIfRequestForItemExistOrCreateAsynch(arrayToRequestAndRetrieve);
-
             InventoryUtils.removeStacksFromItemHandler(new InvWrapper(worker.getInventoryCitizen()), list);
             currentBakingProduct.nextState();
             getOwnBuilding().removeFromTasks(ProductState.UNCRAFTED, currentBakingProduct);
@@ -395,13 +377,6 @@ public class EntityAIWorkBaker extends AbstractEntityAISkill<JobBaker>
         }
         else
         {
-        	final List<ItemStack> list = new ArrayList<>();
-	        for (final ItemStack stack : storage.getInput())
-	        {
-	              list.add(stack);
-	        }
-	        final ItemStack[] arrayToRequestAndRetrieve = list.toArray(new ItemStack[list.size()]);
-	        checkIfRequestForItemExistOrCreateAsynch(arrayToRequestAndRetrieve);
         	setDelay(UNABLE_TO_CRAFT_DELAY);
         	return NEEDS_ITEM;
         }
@@ -412,9 +387,9 @@ public class EntityAIWorkBaker extends AbstractEntityAISkill<JobBaker>
     /**
      * Prepares the baker for baking and requests ingredients.
      *
-     * @return the next AIState
+     * @return the next IAIState
      */
-    private AIState bake()
+    private IAIState bake()
     {
         final BuildingBaker building = getOwnBuilding();
         if (currentFurnace == null || building.getFurnacesWithProduct().get(currentFurnace) != null)
@@ -461,13 +436,19 @@ public class EntityAIWorkBaker extends AbstractEntityAISkill<JobBaker>
     /**
      * Prepares the baker for baking and requests ingredients.
      *
-     * @return the next AIState
+     * @return the next IAIState
      */
-    private AIState prepareForBaking()
+    private IAIState prepareForBaking()
     {
         if (getOwnBuilding().getFurnaces().isEmpty())
         {
-            chatSpamFilter.talkWithoutSpam(COM_MINECOLONIES_COREMOD_ENTITY_BAKER_NO_FURNACES);
+            chatSpamFilter.talkWithoutSpam(BAKER_HAS_NO_FURNACES_MESSAGE);
+            return getState();
+        }
+
+        if (getOwnBuilding().getCopyOfAllowedItems().isEmpty())
+        {
+            chatSpamFilter.talkWithoutSpam(BAKER_HAS_NO_RECIPES);
             return getState();
         }
 
@@ -511,7 +492,7 @@ public class EntityAIWorkBaker extends AbstractEntityAISkill<JobBaker>
      * @param map the map of furnaces.
      * @return the next state to transit to.
      */
-    private static AIState handleEmptyFurnace(final Map<ProductState, List<BakingProduct>> map)
+    private static IAIState handleEmptyFurnace(final Map<ProductState, List<BakingProduct>> map)
     {
         if (map.containsKey(ProductState.PREPARED) && !map.get(ProductState.PREPARED).isEmpty())
         {
@@ -521,11 +502,11 @@ public class EntityAIWorkBaker extends AbstractEntityAISkill<JobBaker>
     }
 
     /**
-     * Redirects the fisherman to his building.
+     * Redirects the baker to his building.
      *
      * @return the next state.
      */
-    private AIState startWorkingAtOwnBuilding()
+    private IAIState startWorkingAtOwnBuilding()
     {
         if (walkToBuilding())
         {
@@ -535,7 +516,7 @@ public class EntityAIWorkBaker extends AbstractEntityAISkill<JobBaker>
     }
 
     /**
-     * Returns the fisherman's worker instance. Called from outside this class.
+     * Returns the baker's worker instance. Called from outside this class.
      *
      * @return citizen object.
      */

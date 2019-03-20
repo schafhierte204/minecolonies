@@ -4,10 +4,10 @@ import com.minecolonies.api.configuration.Configurations;
 import com.minecolonies.api.util.BlockUtils;
 import com.minecolonies.api.util.LanguageHandler;
 import com.minecolonies.coremod.MineColonies;
-import com.minecolonies.coremod.client.gui.WindowBuildTool;
 import com.minecolonies.coremod.colony.ColonyManager;
-import com.minecolonies.coremod.colony.Structures;
 import com.minecolonies.coremod.creativetab.ModCreativeTabs;
+import com.ldtteam.structurize.client.gui.WindowBuildTool;
+import com.ldtteam.structurize.management.Structures;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ActionResult;
@@ -28,7 +28,7 @@ import static com.minecolonies.api.util.constant.TranslationConstants.CANT_PLACE
 public class ItemSupplyChestDeployer extends AbstractItemMinecolonies
 {
     /**
-     * Structure name and location.
+     * StructureIterator name and location.
      */
     private static final String SUPPLY_SHIP_STRUCTURE_NAME = Structures.SCHEMATICS_PREFIX + "/SupplyShip";
 
@@ -144,7 +144,6 @@ public class ItemSupplyChestDeployer extends AbstractItemMinecolonies
      * @param size the size.
      * @return true if so.
      */
-    @NotNull
     public static boolean canShipBePlaced(@NotNull final World world, @NotNull final BlockPos pos, final BlockPos size)
     {
         for(int z = pos.getZ() - size.getZ() / 2 + 1; z < pos.getZ() + size.getZ() / 2 + 1; z++)

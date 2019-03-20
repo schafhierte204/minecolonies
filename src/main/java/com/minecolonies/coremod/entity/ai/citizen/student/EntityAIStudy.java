@@ -6,8 +6,8 @@ import com.minecolonies.coremod.colony.CitizenData;
 import com.minecolonies.coremod.colony.buildings.workerbuildings.BuildingLibrary;
 import com.minecolonies.coremod.colony.jobs.JobStudent;
 import com.minecolonies.coremod.entity.ai.basic.AbstractEntityAISkill;
-import com.minecolonies.coremod.entity.ai.util.AIState;
-import com.minecolonies.coremod.entity.ai.util.AITarget;
+import com.minecolonies.coremod.entity.ai.statemachine.AITarget;
+import com.minecolonies.coremod.entity.ai.statemachine.states.IAIState;
 import com.minecolonies.coremod.entity.ai.util.StudyItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumHand;
@@ -17,7 +17,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.minecolonies.coremod.entity.ai.util.AIState.*;
+import static com.minecolonies.coremod.entity.ai.statemachine.states.AIWorkerState.*;
 
 /**
  * The Entity AI study class.
@@ -61,9 +61,9 @@ public class EntityAIStudy extends AbstractEntityAISkill<JobStudent>
      * The AI task for the student to study.
      * For this he should walk between the different bookcase hit them once and then stand around for a while.
      *
-     * @return the next AIState.
+     * @return the next IAIState.
      */
-    private AIState study()
+    private IAIState study()
     {
         final CitizenData data = worker.getCitizenData();
         if (data == null)
@@ -85,6 +85,7 @@ public class EntityAIStudy extends AbstractEntityAISkill<JobStudent>
 
         // Search for Items to use to study
         final List<StudyItem> currentItems = new ArrayList<>();
+        worker.decreaseSaturationForAction();
 
         for (final StudyItem curItem : getOwnBuilding(BuildingLibrary.class).getStudyItems())
         {
@@ -128,7 +129,7 @@ public class EntityAIStudy extends AbstractEntityAISkill<JobStudent>
         {
             final StudyItem chosenItem = currentItems.get(world.rand.nextInt(currentItems.size()));
 
-            worker.setHeldItem(EnumHand.MAIN_HAND, chosenItem.getItem().getDefaultInstance());
+            worker.setHeldItem(EnumHand.MAIN_HAND, new ItemStack(chosenItem.getItem(), 1));
             data.tryRandomLevelUp(world.rand, data.getChanceToLevel() * 100 / chosenItem.getSkillIncreasePct());
 
             // Break item rand
@@ -148,7 +149,7 @@ public class EntityAIStudy extends AbstractEntityAISkill<JobStudent>
      *
      * @return the next state.
      */
-    private AIState startWorkingAtOwnBuilding()
+    private IAIState startWorkingAtOwnBuilding()
     {
         if (walkToBuilding())
         {

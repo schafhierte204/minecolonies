@@ -1,19 +1,27 @@
 package com.minecolonies.coremod.colony.buildings.workerbuildings;
 
+import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.ItemStackUtils;
 import com.minecolonies.blockout.views.Window;
-import com.minecolonies.coremod.client.gui.WindowHutWorkerPlaceholder;
+import com.minecolonies.coremod.client.gui.WindowHutCook;
 import com.minecolonies.coremod.colony.CitizenData;
 import com.minecolonies.coremod.colony.Colony;
 import com.minecolonies.coremod.colony.ColonyView;
 import com.minecolonies.coremod.colony.buildings.AbstractBuildingFurnaceUser;
-import com.minecolonies.coremod.colony.buildings.AbstractBuildingWorker;
+import com.minecolonies.coremod.colony.buildings.views.FilterableListView;
 import com.minecolonies.coremod.colony.jobs.AbstractJob;
 import com.minecolonies.coremod.colony.jobs.JobCook;
+import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntityFurnace;
+import net.minecraft.util.Tuple;
 import net.minecraft.util.math.BlockPos;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
+import java.util.function.Predicate;
+
+import static com.minecolonies.api.util.ItemStackUtils.CAN_EAT;
+import static com.minecolonies.api.util.ItemStackUtils.ISFOOD;
 import static com.minecolonies.api.util.constant.Constants.STACKSIZE;
 import static com.minecolonies.api.util.constant.Suppression.OVERRIDE_EQUALS;
 
@@ -42,9 +50,9 @@ public class BuildingCook extends AbstractBuildingFurnaceUser
     public BuildingCook(final Colony c, final BlockPos l)
     {
         super(c, l);
-        keepX.put(ItemStackUtils.ISFOOD, STACKSIZE);
-        keepX.put(ItemStackUtils.ISCOOKABLE, STACKSIZE);
-        keepX.put(TileEntityFurnace::isItemFuel, STACKSIZE);
+        keepX.put(ItemStackUtils.ISFOOD, new Tuple<>(STACKSIZE, true));
+        keepX.put(ItemStackUtils.ISCOOKABLE, new Tuple<>(STACKSIZE, true));
+        keepX.put(TileEntityFurnace::isItemFuel, new Tuple<>(STACKSIZE, true));
     }
 
     @NotNull
@@ -80,10 +88,50 @@ public class BuildingCook extends AbstractBuildingFurnaceUser
         return true;
     }
 
+    @Override
+    public boolean canWorkDuringTheRain()
+    {
+        return true;
+    }
+
+    @Override
+    public int buildingRequiresCertainAmountOfItem(final ItemStack stack, final List<ItemStorage> localAlreadyKept, final boolean inventory)
+    {
+        if (stack.isEmpty())
+        {
+            return 0;
+        }
+
+        if (ISFOOD.test(stack) && localAlreadyKept.stream().filter(storage -> ISFOOD.test(storage.getItemStack())).mapToInt(ItemStorage::getAmount).sum() < STACKSIZE || !inventory)
+        {
+            final ItemStorage kept = new ItemStorage(stack);
+            if (localAlreadyKept.contains(kept))
+            {
+                kept.setAmount(localAlreadyKept.remove(localAlreadyKept.indexOf(kept)).getAmount());
+            }
+            localAlreadyKept.add(kept);
+            return 0;
+        }
+
+        final Predicate<ItemStack> allowedFuel = theStack -> getAllowedFuel().stream().anyMatch(fuelStack -> fuelStack.isItemEqual(theStack));
+        if (allowedFuel.test(stack) && localAlreadyKept.stream().filter(storage -> allowedFuel.test(storage.getItemStack())).mapToInt(ItemStorage::getAmount).sum() < STACKSIZE || !inventory)
+        {
+            final ItemStorage kept = new ItemStorage(stack);
+            if (localAlreadyKept.contains(kept))
+            {
+                kept.setAmount(localAlreadyKept.remove(localAlreadyKept.indexOf(kept)).getAmount());
+            }
+            localAlreadyKept.add(kept);
+            return 0;
+        }
+
+        return super.buildingRequiresCertainAmountOfItem(stack, localAlreadyKept, inventory);
+    }
+
     /**
      * BuildingCook View.
      */
-    public static class View extends AbstractBuildingWorker.View
+    public static class View extends FilterableListView
     {
         /**
          * Instantiate the cook view.
@@ -100,7 +148,7 @@ public class BuildingCook extends AbstractBuildingFurnaceUser
         @Override
         public Window getWindow()
         {
-            return new WindowHutWorkerPlaceholder<>(this, COOK_DESC);
+            return new WindowHutCook(this);
         }
 
         @NotNull

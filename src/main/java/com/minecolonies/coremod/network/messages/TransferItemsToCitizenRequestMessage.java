@@ -9,6 +9,7 @@ import com.minecolonies.coremod.colony.Colony;
 import com.minecolonies.coremod.colony.ColonyManager;
 import com.minecolonies.coremod.entity.EntityCitizen;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -72,7 +73,7 @@ public class TransferItemsToCitizenRequestMessage extends AbstractMessage<Transf
         this.citizenId = citizenDataView.getId();
         this.itemStack = itemStack;
         this.quantity = quantity;
-        this.dimension = ColonyManager.getColonyView(colonyId).getDimension();
+        this.dimension = Minecraft.getMinecraft().world.provider.getDimension();
     }
 
     @Override
@@ -146,7 +147,7 @@ public class TransferItemsToCitizenRequestMessage extends AbstractMessage<Transf
             int amountToRemoveFromPlayer = amountToTake - ItemStackUtils.getSize(remainingItemStack);
             while (amountToRemoveFromPlayer > 0)
             {
-                final int slot = InventoryUtils.findFirstSlotInItemHandlerWith(new InvWrapper(player.inventory), item, message.itemStack.getItemDamage());
+                final int slot = InventoryUtils.findFirstSlotInItemHandlerWith(new InvWrapper(player.inventory), stack -> stack.isItemEqual(message.itemStack));
                 final ItemStack itemsTaken = player.inventory.decrStackSize(slot, amountToRemoveFromPlayer);
                 amountToRemoveFromPlayer -= ItemStackUtils.getSize(itemsTaken);
             }

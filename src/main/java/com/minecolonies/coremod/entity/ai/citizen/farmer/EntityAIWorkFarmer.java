@@ -6,7 +6,7 @@ import com.minecolonies.api.compatibility.Compatibility;
 import com.minecolonies.api.util.BlockUtils;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.ItemStackUtils;
-import com.minecolonies.api.util.constant.IToolType; 
+import com.minecolonies.api.util.constant.IToolType;
 import com.minecolonies.api.util.constant.ToolType;
 import com.minecolonies.coremod.MineColonies;
 import com.minecolonies.coremod.blocks.huts.BlockHutField;
@@ -15,15 +15,13 @@ import com.minecolonies.coremod.colony.buildings.workerbuildings.BuildingFarmer;
 import com.minecolonies.coremod.colony.jobs.JobFarmer;
 import com.minecolonies.coremod.entity.EntityCitizen;
 import com.minecolonies.coremod.entity.ai.basic.AbstractEntityAIInteract;
-import com.minecolonies.coremod.entity.ai.util.AIState;
-import com.minecolonies.coremod.entity.ai.util.AITarget;
+import com.minecolonies.coremod.entity.ai.statemachine.AITarget;
+import com.minecolonies.coremod.entity.ai.statemachine.states.AIWorkerState;
+import com.minecolonies.coremod.entity.ai.statemachine.states.IAIState;
 import com.minecolonies.coremod.items.ModItems;
 import com.minecolonies.coremod.network.messages.CompostParticleMessage;
 import com.minecolonies.coremod.tileentities.ScarecrowTileEntity;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockCrops;
-import net.minecraft.block.BlockStem;
-import net.minecraft.block.IGrowable;
+import net.minecraft.block.*;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
@@ -46,7 +44,8 @@ import java.util.function.Predicate;
 
 import static com.minecolonies.api.util.constant.CitizenConstants.BLOCK_BREAK_SOUND_RANGE;
 import static com.minecolonies.api.util.constant.ToolLevelConstants.TOOL_LEVEL_WOOD_OR_GOLD;
-import static com.minecolonies.coremod.entity.ai.util.AIState.*;
+import static com.minecolonies.api.util.constant.TranslationConstants.FERTLIZER;
+import static com.minecolonies.coremod.entity.ai.statemachine.states.AIWorkerState.*;
 
 /**
  * Farmer AI class.
@@ -130,7 +129,7 @@ public class EntityAIWorkFarmer extends AbstractEntityAIInteract<JobFarmer>
      *
      * @return the next state.
      */
-    private AIState startWorkingAtOwnBuilding()
+    private IAIState startWorkingAtOwnBuilding()
     {
         if (walkToBuilding())
         {
@@ -143,10 +142,10 @@ public class EntityAIWorkFarmer extends AbstractEntityAIInteract<JobFarmer>
      * Prepares the farmer for farming.
      * Also requests the tools and checks if the farmer has sufficient fields.
      *
-     * @return the next AIState
+     * @return the next IAIState
      */
     @NotNull
-    private AIState prepareForFarming()
+    private IAIState prepareForFarming()
     {
         @Nullable final BuildingFarmer building = getWorkBuilding();
         if (building == null || building.getBuildingLevel() < 1)
@@ -170,7 +169,7 @@ public class EntityAIWorkFarmer extends AbstractEntityAIInteract<JobFarmer>
                 final List<ItemStack> compostAbleItems = new ArrayList<>();
                 compostAbleItems.add(new ItemStack(ModItems.compost));
                 compostAbleItems.add(new ItemStack(Items.DYE, 1, 15));
-                worker.getCitizenData().createRequestAsync(new StackList(compostAbleItems));
+                worker.getCitizenData().createRequestAsync(new StackList(compostAbleItems, FERTLIZER));
             }
         }
         else if (amountOfCompostInInv <= 0 && amountOfCompostInBuilding > 0)
@@ -302,7 +301,7 @@ public class EntityAIWorkFarmer extends AbstractEntityAIInteract<JobFarmer>
      * @param buildingFarmer the farmer building.
      * @return true if he is ready.
      */
-    private AIState canGoPlanting(@NotNull final ScarecrowTileEntity currentField, @NotNull final BuildingFarmer buildingFarmer)
+    private IAIState canGoPlanting(@NotNull final ScarecrowTileEntity currentField, @NotNull final BuildingFarmer buildingFarmer)
     {
         if (currentField.getSeed() == null)
         {
@@ -313,7 +312,7 @@ public class EntityAIWorkFarmer extends AbstractEntityAIInteract<JobFarmer>
         }
         worker.getCitizenData().getCitizenHappinessHandler().setNoFieldForFarmerModifier(currentField.getPos(), true); 
 
-        final ItemStack seeds = currentField.getSeed();
+        final ItemStack seeds = currentField.getSeed().copy();
         final int slot = worker.getCitizenInventoryHandler().findFirstSlotInInventoryWith(seeds.getItem(), seeds.getItemDamage());
         if (slot != -1)
         {
@@ -325,6 +324,7 @@ public class EntityAIWorkFarmer extends AbstractEntityAIInteract<JobFarmer>
             return PREPARING;
         }
 
+        seeds.setCount(seeds.getMaxStackSize());
         checkIfRequestForItemExistOrCreateAsynch(seeds);
 
         currentField.nextState();
@@ -398,7 +398,7 @@ public class EntityAIWorkFarmer extends AbstractEntityAIInteract<JobFarmer>
      * This (re)initializes a field.
      * Checks the block above to see if it is a plant, if so, breaks it. Then tills.
      */
-    private AIState workAtField()
+    private IAIState workAtField()
     {
         @Nullable final BuildingFarmer buildingFarmer = getWorkBuilding();
 
@@ -412,6 +412,13 @@ public class EntityAIWorkFarmer extends AbstractEntityAIInteract<JobFarmer>
         {
             if (workingOffset != null)
             {
+                if (((ScarecrowTileEntity) entity).getOwnerId() != worker.getCitizenId())
+                {
+                    buildingFarmer.freeField(buildingFarmer.getCurrentField());
+                    buildingFarmer.setCurrentField(null);
+                    return getState();
+                }
+
                 final BlockPos position = field.down().south(workingOffset.getZ()).east(workingOffset.getX());
                 // Still moving to the block
                 if (walkToBlock(position.up()))
@@ -419,7 +426,7 @@ public class EntityAIWorkFarmer extends AbstractEntityAIInteract<JobFarmer>
                     return getState();
                 }
 
-                switch (getState())
+                switch ((AIWorkerState) getState())
                 {
                     case FARMER_HOE:
                         worker.getCitizenStatusHandler().setLatestStatus(new TextComponentTranslation("com.minecolonies.coremod.status.hoeing"));
@@ -477,6 +484,7 @@ public class EntityAIWorkFarmer extends AbstractEntityAIInteract<JobFarmer>
                 worker.swingArm(worker.getActiveHand());
                 world.setBlockState(position, Blocks.FARMLAND.getDefaultState());
                 worker.getCitizenItemHandler().damageItemInHand(EnumHand.MAIN_HAND, 1);
+                worker.decreaseSaturationForContinuousAction();
                 return true;
             }
             return false;
@@ -517,7 +525,6 @@ public class EntityAIWorkFarmer extends AbstractEntityAIInteract<JobFarmer>
         return true;
     }
 
-    @Override
     protected int getLevelDelay()
     {
         return (int) Math.max(SMALLEST_DELAY, STANDARD_DELAY - (this.worker.getCitizenExperienceHandler().getLevel() * DELAY_DIVIDER));
@@ -533,7 +540,7 @@ public class EntityAIWorkFarmer extends AbstractEntityAIInteract<JobFarmer>
     {
         return !BlockUtils.isBlockSeed(world, position.up())
                  && !(world.getBlockState(position.up()).getBlock() instanceof BlockHutField)
-                 && (world.getBlockState(position).getBlock() == Blocks.DIRT || world.getBlockState(position).getBlock() == Blocks.GRASS);
+                 && (world.getBlockState(position).getBlock() instanceof BlockDirt || world.getBlockState(position).getBlock() instanceof BlockGrass);
     }
 
     /**
@@ -580,6 +587,7 @@ public class EntityAIWorkFarmer extends AbstractEntityAIInteract<JobFarmer>
         }
 
         world.setBlockState(position.up(), seed.getPlant(world, position));
+        worker.decreaseSaturationForContinuousAction();
         new InvWrapper(getInventory()).extractItem(slot, 1, false);
         return true;
     }
@@ -665,6 +673,8 @@ public class EntityAIWorkFarmer extends AbstractEntityAIInteract<JobFarmer>
             world.setBlockState(pos, crops.withAge(0));
         }
 
+        this.incrementActionsDone();
+        worker.decreaseSaturationForContinuousAction();
         worker.getCitizenExperienceHandler().addExperience(XP_PER_BLOCK);
     }
 

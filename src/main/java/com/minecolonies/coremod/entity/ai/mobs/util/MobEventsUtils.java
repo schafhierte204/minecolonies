@@ -1,15 +1,19 @@
 package com.minecolonies.coremod.entity.ai.mobs.util;
 
+import com.ldtteam.structurize.util.PlacementSettings;
 import com.minecolonies.api.configuration.Configurations;
 import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.LanguageHandler;
 import com.minecolonies.api.util.Log;
 import com.minecolonies.coremod.colony.CitizenData;
 import com.minecolonies.coremod.colony.Colony;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Blocks;
+import com.ldtteam.structurize.management.Structures;
+import com.ldtteam.structures.helpers.Structure;
+import net.minecraft.block.material.Material;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.Mirror;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 
@@ -18,7 +22,7 @@ import java.util.List;
 import java.util.Random;
 
 import static com.minecolonies.api.util.constant.ColonyConstants.*;
-import static com.minecolonies.api.util.constant.TranslationConstants.RAID_EVENT_MESSAGE;
+import static com.minecolonies.coremod.entity.ai.mobs.util.PirateEventUtils.PIRATESHIP_FOLDER;
 
 /**
  * Utils for Colony mob events
@@ -26,9 +30,9 @@ import static com.minecolonies.api.util.constant.TranslationConstants.RAID_EVENT
 public final class MobEventsUtils
 {
     /**
-     * Spawn modifier to decrease the spawnrate.
+     * Spawn modifier to decrease the spawn-rate.
      */
-    private static final int SPAWN_MODIFIER   = 3;
+    private static final int SPAWN_MODIFIER = 3;
 
     /**
      * Private constructor to hide the implicit public one.
@@ -37,7 +41,7 @@ public final class MobEventsUtils
     {
     }
 
-    public static void barbarianEvent(final World world, final Colony colony)
+    public static void raiderEvent(final World world, final Colony colony)
     {
         if (world == null || !colony.isCanHaveBarbEvents())
         {
@@ -46,14 +50,14 @@ public final class MobEventsUtils
 
         final Horde horde = numberOfSpawns(colony);
         final int hordeSize = horde.hordeSize;
-        if(hordeSize == 0)
+        if (hordeSize == 0)
         {
             return;
         }
 
         BlockPos targetSpawnPoint = calculateSpawnLocation(world, colony);
         Log.getLogger().info("[BarbarianEvent]: Spawning: " + targetSpawnPoint.getX() + " " + targetSpawnPoint.getZ());
-        if (targetSpawnPoint.equals(colony.getCenter()))
+        if (targetSpawnPoint.equals(colony.getCenter()) || targetSpawnPoint.getY() > Configurations.gameplay.maxYForBarbarians)
         {
             return;
         }
@@ -64,57 +68,105 @@ public final class MobEventsUtils
               colony.getMessageEntityPlayers(),
               "Horde Spawn Point: " + targetSpawnPoint);
         }
-        colony.getBarbManager().addBarbarianSpawnPoint(targetSpawnPoint);
+        colony.getRaiderManager().addRaiderSpawnPoint(targetSpawnPoint);
         colony.markDirty();
 
         int raidNumber = HUGE_HORDE_MESSAGE_ID;
-        if(hordeSize < SMALL_HORDE_SIZE)
+        String shipSize = BIG_PIRATE_SHIP;
+        if (hordeSize < SMALL_HORDE_SIZE)
         {
             raidNumber = SMALL_HORDE_MESSAGE_ID;
+            shipSize = SMALL_PIRATE_SHIP;
         }
-        else if(hordeSize < MEDIUM_HORDE_SIZE)
+        else if (hordeSize < MEDIUM_HORDE_SIZE)
         {
             raidNumber = MEDIUM_HORDE_MESSAGE_ID;
+            shipSize = MEDIUM_PIRATE_SHIP;
         }
-        else if(hordeSize < BIG_HORDE_SIZE)
+        else if (hordeSize < BIG_HORDE_SIZE)
         {
             raidNumber = BIG_HORDE_MESSAGE_ID;
+            shipSize = MEDIUM_PIRATE_SHIP;
         }
-        LanguageHandler.sendPlayersMessage(
-                colony.getMessageEntityPlayers(),
-                RAID_EVENT_MESSAGE + raidNumber, colony.getName());
 
         colony.setNightsSinceLastRaid(0);
 
-        if (BlockPosUtil.getFloor(targetSpawnPoint, 0, world) == null)
+        // Calculate size/offset of the pirate ship
+        final Structure structure = new Structure(world, Structures.SCHEMATICS_PREFIX + PIRATESHIP_FOLDER + shipSize, new PlacementSettings());
+        structure.rotate(BlockPosUtil.getRotationFromRotations(0), world, targetSpawnPoint, Mirror.NONE);
+
+        if ((world.getBlockState(targetSpawnPoint).getMaterial() == Material.WATER && isSurfaceAreaMostlyWater(world,
+          targetSpawnPoint.add(-structure.getOffset().getX(), 0, -structure.getOffset().getZ()),
+          targetSpawnPoint.add(structure.getWidth() - 1, 0, structure.getLength() - 1).subtract(structure.getOffset()),
+          0.8))
+              || (world.getBlockState(targetSpawnPoint.down()).getMaterial() == Material.WATER && isSurfaceAreaMostlyWater(world,
+          targetSpawnPoint.add(-structure.getOffset().getX(), 0, -structure.getOffset().getZ()).down(),
+          targetSpawnPoint.add(structure.getWidth() - 1, structure.getHeight(), structure.getLength() - 1).subtract(structure.getOffset()).down(),
+          0.8))
+        )
         {
-            targetSpawnPoint = new BlockPos(targetSpawnPoint.getX(), colony.getCenter().getY(), targetSpawnPoint.getZ());
-            buildPlatform(targetSpawnPoint, world);
+            if (world.getBlockState(targetSpawnPoint).getMaterial() != Material.WATER)
+            {
+                targetSpawnPoint = targetSpawnPoint.down();
+            }
+            PirateEventUtils.pirateEvent(targetSpawnPoint, world, colony, shipSize, raidNumber);
+            return;
         }
 
-        BarbarianSpawnUtils.spawn(BARBARIAN, horde.numberOfBarbarians, targetSpawnPoint, world);
-        BarbarianSpawnUtils.spawn(ARCHER, horde.numberOfArchers, targetSpawnPoint, world);
-        BarbarianSpawnUtils.spawn(CHIEF, horde.numberOfChiefs, targetSpawnPoint, world);
+        BarbarianEventUtils.barbarianEvent(world, colony, targetSpawnPoint, raidNumber, horde);
     }
 
-    private static void buildPlatform(final BlockPos target, final World world)
+    /**
+     * Returns true when most parts of the given area are water, > 90%
+     *
+     * @param world Blockacces to use
+     * @param from  First corner of search rectangle
+     * @param to    Second corner of search rectangle
+     * @return true if enough water surface blocks are found
+     */
+    public static boolean isSurfaceAreaMostlyWater(
+      @NotNull final IBlockAccess world,
+      @NotNull final BlockPos from,
+      @NotNull final BlockPos to,
+      @NotNull final double percentRequired)
     {
-        final IBlockState platformBlock = Blocks.WOODEN_SLAB.getDefaultState();
+        final int xDist = Math.abs(from.getX() - to.getX());
+        final int zDist = Math.abs(from.getZ() - to.getZ());
 
-        for (int z = 0; z < 5; z++)
+        int nonWaterBlocks = 0;
+        final int neededWaterBlocks = (int) (percentRequired * (xDist * zDist));
+        final int nonWaterBlockThreshold = (xDist * zDist) - neededWaterBlocks;
+
+        int xDir = 1;
+        int zDir = 1;
+        if (from.getX() > to.getX())
         {
-            for (int x = 0; x < 5; x++)
+            xDir = -1;
+        }
+
+        if (from.getZ() > to.getZ())
+        {
+            zDir = -1;
+        }
+
+        // Check the area
+        for (int x = 0; x < xDist; x++)
+        {
+            for (int z = 0; z < zDist; z++)
             {
-                int sum = x * x + z * z;
-                if (sum < (5 * 5) / 4)
+                // Count surface waterblocks
+                if (world.getBlockState(from.add(x * xDir, 0, z * zDir)).getMaterial() != Material.WATER || !world.isAirBlock(from.add(x * xDir, 1, z * zDir)))
                 {
-                    world.setBlockState(new BlockPos(target.getX() + x, target.getY()-1, target.getZ() + z), platformBlock);
-                    world.setBlockState(new BlockPos(target.getX() + x, target.getY()-1, target.getZ() -z), platformBlock);
-                    world.setBlockState(new BlockPos(target.getX() -x, target.getY()-1, target.getZ() + z), platformBlock);
-                    world.setBlockState(new BlockPos(target.getX() -x, target.getY()-1, target.getZ() -z), platformBlock);
+                    nonWaterBlocks++;
+                    // Skip when we already found too many non water blocks
+                    if (nonWaterBlocks > nonWaterBlockThreshold)
+                    {
+                        return false;
+                    }
                 }
             }
         }
+        return true;
     }
 
     /**
@@ -130,9 +182,10 @@ public final class MobEventsUtils
             return new Horde(0, 0, 0, 0);
         }
 
-        final int raidLevel = Math.min(Configurations.gameplay.maxBarbarianSize,(int) ((getColonyRaidLevel(colony) / SPAWN_MODIFIER) * ((double) Configurations.gameplay.spawnBarbarianSize * 0.1)));
+        final int raidLevel =
+          Math.min(Configurations.gameplay.maxBarbarianSize, (int) ((getColonyRaidLevel(colony) / SPAWN_MODIFIER) * ((double) Configurations.gameplay.spawnBarbarianSize * 0.1)));
         final int numberOfChiefs = Math.max(1, (int) (raidLevel * CHIEF_BARBARIANS_MULTIPLIER));
-        final int numberOfArchers = Math.max(1,(int) (raidLevel * ARCHER_BARBARIANS_MULTIPLIER));
+        final int numberOfArchers = Math.max(1, (int) (raidLevel * ARCHER_BARBARIANS_MULTIPLIER));
         final int numberOfBarbarians = raidLevel - numberOfChiefs - numberOfArchers;
 
         return new Horde(raidLevel, numberOfBarbarians, numberOfArchers, numberOfChiefs);
@@ -148,7 +201,7 @@ public final class MobEventsUtils
     private static BlockPos calculateSpawnLocation(final World world, @NotNull final Colony colony)
     {
         final Random random = new Random();
-        final BlockPos pos = colony.getBarbManager().getRandomOutsiderInDirection(
+        final BlockPos pos = colony.getRaiderManager().getRandomOutsiderInDirection(
           random.nextInt(2) < 1 ? EnumFacing.EAST : EnumFacing.WEST,
           random.nextInt(2) < 1 ? EnumFacing.NORTH : EnumFacing.SOUTH);
 
@@ -170,10 +223,7 @@ public final class MobEventsUtils
     public static int getColonyRaidLevel(final Colony colony)
     {
         int levels = 0;
-
-        @NotNull final List<CitizenData> citizensList = new ArrayList<>();
-        citizensList.addAll(colony.getCitizenManager().getCitizens());
-
+        @NotNull final List<CitizenData> citizensList = new ArrayList<>(colony.getCitizenManager().getCitizens());
         for (@NotNull final CitizenData citizen : citizensList)
         {
             levels += citizen.getLevel();
@@ -191,7 +241,7 @@ public final class MobEventsUtils
 
         if (world.isDaytime() && !colony.isHasRaidBeenCalculated())
         {
-            colony.getBarbManager().setHasRaidBeenCalculated(true);
+            colony.getRaiderManager().setHasRaidBeenCalculated(true);
             if (!colony.hasWillRaidTonight())
             {
                 final boolean raid = raidThisNight(world, colony);
@@ -201,14 +251,14 @@ public final class MobEventsUtils
                       colony.getMessageEntityPlayers(),
                       "Will raid tonight: " + raid);
                 }
-                colony.getBarbManager().setWillRaidTonight(raid);
+                colony.getRaiderManager().setWillRaidTonight(raid);
             }
             return false;
         }
         else if (colony.hasWillRaidTonight() && !world.isDaytime() && colony.isHasRaidBeenCalculated())
         {
-            colony.getBarbManager().setHasRaidBeenCalculated(false);
-            colony.getBarbManager().setWillRaidTonight(false);
+            colony.getRaiderManager().setHasRaidBeenCalculated(false);
+            colony.getRaiderManager().setWillRaidTonight(false);
             if (Configurations.gameplay.enableInDevelopmentFeatures)
             {
                 LanguageHandler.sendPlayersMessage(
@@ -219,7 +269,7 @@ public final class MobEventsUtils
         }
         else if (!world.isDaytime() && colony.isHasRaidBeenCalculated())
         {
-            colony.getBarbManager().setHasRaidBeenCalculated(false);
+            colony.getRaiderManager().setHasRaidBeenCalculated(false);
         }
 
         return false;
@@ -234,25 +284,33 @@ public final class MobEventsUtils
     private static boolean raidThisNight(final World world, final Colony colony)
     {
         return colony.getNightsSinceLastRaid() > Configurations.gameplay.minimumNumberOfNightsBetweenRaids
-                && world.rand.nextDouble() < 1.0 / Configurations.gameplay.averageNumberOfNightsBetweenRaids;
+                 && world.rand.nextDouble() < 1.0 / Configurations.gameplay.averageNumberOfNightsBetweenRaids;
     }
 
     /**
      * Class representing a horde attack.
      */
-    private static class Horde
+    protected static class Horde
     {
-        private final int numberOfBarbarians;
-        private final int numberOfArchers;
-        private final int numberOfChiefs;
-        private final int hordeSize;
+        protected final int numberOfRaiders;
+        protected final int numberOfArchers;
+        protected final int numberOfBosses;
+        protected final int hordeSize;
 
-        public Horde(final int hordeSize, final int numberOfBarbarians, final int numberOfArchers, final int numberOfChiefs)
+        /**
+         * Create a new horde.
+         *
+         * @param hordeSize       the size.
+         * @param numberOfRaiders the number of raiders.
+         * @param numberOfArchers the number of archers.
+         * @param numberOfBosses  the number of bosses.
+         */
+        Horde(final int hordeSize, final int numberOfRaiders, final int numberOfArchers, final int numberOfBosses)
         {
             this.hordeSize = hordeSize;
-            this.numberOfBarbarians = numberOfBarbarians;
+            this.numberOfRaiders = numberOfRaiders;
             this.numberOfArchers = numberOfArchers;
-            this.numberOfChiefs = numberOfChiefs;
+            this.numberOfBosses = numberOfBosses;
         }
     }
 }

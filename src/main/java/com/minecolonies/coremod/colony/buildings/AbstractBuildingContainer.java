@@ -2,10 +2,10 @@ package com.minecolonies.coremod.colony.buildings;
 
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.ItemStackUtils;
+import com.minecolonies.blockout.Log;
 import com.minecolonies.coremod.blocks.AbstractBlockHut;
 import com.minecolonies.coremod.blocks.BlockMinecoloniesRack;
 import com.minecolonies.coremod.colony.Colony;
-import com.minecolonies.coremod.inventory.api.CombinedItemHandler;
 import com.minecolonies.coremod.tileentities.TileEntityColonyBuilding;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockContainer;
@@ -18,23 +18,21 @@ import net.minecraft.nbt.NBTUtil;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.tileentity.TileEntityChest;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.Tuple;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.items.CapabilityItemHandler;
-import net.minecraftforge.items.IItemHandlerModifiable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
 import java.util.*;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import static com.minecolonies.api.util.constant.BuildingConstants.MAX_PRIO;
-import static com.minecolonies.api.util.constant.BuildingConstants.MIN_SLOTS_FOR_RECOGNITION;
 import static com.minecolonies.api.util.constant.NbtTagConstants.TAG_CONTAINERS;
 import static com.minecolonies.api.util.constant.NbtTagConstants.TAG_PRIO;
 
@@ -50,9 +48,9 @@ public abstract class AbstractBuildingContainer extends AbstractCitizenAssignabl
     protected final List<BlockPos> containerList = new ArrayList<>();
 
     /**
-     * List of items the worker should keep.
+     * List of items the worker should keep. With the quantity and if he should keep it in the inventory as well.
      */
-    protected final Map<Predicate<ItemStack>, Integer> keepX = new HashMap<>();
+    protected final Map<Predicate<ItemStack>, Tuple<Integer, Boolean>> keepX = new HashMap<>();
 
     /**
      * The tileEntity of the building.
@@ -63,6 +61,11 @@ public abstract class AbstractBuildingContainer extends AbstractCitizenAssignabl
      * Priority of the building in the pickUpList.
      */
     private int pickUpPriority = 1;
+
+    /**
+     * Priority state of the building in the pickUpList.
+     */
+    private boolean priorityStatic = false;
 
     /**
      * The constructor for the building container.
@@ -132,6 +135,24 @@ public abstract class AbstractBuildingContainer extends AbstractCitizenAssignabl
         {
             this.pickUpPriority += value;
         }
+    }
+
+    /**
+     * Check if the priority is static and it shouldn't change.
+     *
+     * @return the priority state, a boolean.
+     */
+    public boolean isPriorityStatic()
+    {
+        return this.priorityStatic;
+    }
+
+    /**
+     * Change the current priority state.
+     */
+    public void alterPriorityState()
+    {
+        this.priorityStatic = !this.priorityStatic;
     }
 
     /**
@@ -261,6 +282,12 @@ public abstract class AbstractBuildingContainer extends AbstractCitizenAssignabl
                     tileEntity.setBuilding(this);
                 }
             }
+            else
+            {
+                Log.getLogger().error("Somehow the wrong TileEntity is at the location where the building should be!");
+                Log.getLogger().error("Trying to restore order!");
+                colony.getWorld().setTileEntity(getLocation(), new TileEntityColonyBuilding());
+            }
         }
 
         return tileEntity;
@@ -279,29 +306,10 @@ public abstract class AbstractBuildingContainer extends AbstractCitizenAssignabl
     @Override
     public <T> T getCapability(@Nonnull final Capability<T> capability, @Nullable final EnumFacing facing)
     {
-        if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY && facing == null)
+        if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY && facing == null && getTileEntity() != null)
         {
-            final Set<ICapabilityProvider> providers = new HashSet<>();
-
-            //Add myself
-            providers.add(getTileEntity());
-
-            //Add additional containers
-            providers.addAll(getAdditionalCountainers().stream()
-                    .map(getTileEntity().getWorld()::getTileEntity)
-                    .collect(Collectors.toSet()));
-            providers.removeIf(Objects::isNull);
-
-            //Map all providers to IItemHandlers.
-
-            return (T) new CombinedItemHandler(getSchematicName(), providers
-                                                                     .stream()
-                                                                     .flatMap(provider -> InventoryUtils.getItemHandlersFromProvider(provider).stream())
-                                                                     .filter(handler -> handler instanceof IItemHandlerModifiable
-                                                                                          && handler.getSlots() >= MIN_SLOTS_FOR_RECOGNITION)
-                                                                     .map(handler -> (IItemHandlerModifiable) handler).distinct().toArray(IItemHandlerModifiable[]::new));
+           return tileEntity.getCapability(capability, facing);
         }
-
         return null;
     }
 

@@ -2,10 +2,10 @@ package com.minecolonies.coremod.colony.buildings;
 
 import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.Log;
-import com.minecolonies.coremod.colony.StructureName;
-import com.minecolonies.coremod.colony.Structures;
 import com.minecolonies.coremod.colony.buildings.registry.BuildingRegistry;
 import com.minecolonies.coremod.util.BuildingUtils;
+import com.ldtteam.structurize.management.StructureName;
+import com.ldtteam.structurize.management.Structures;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.Tuple;
 import net.minecraft.util.math.AxisAlignedBB;

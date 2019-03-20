@@ -8,8 +8,8 @@ import com.minecolonies.coremod.colony.buildings.workerbuildings.BuildingSmelter
 import com.minecolonies.coremod.colony.jobs.JobSmelter;
 import com.minecolonies.coremod.colony.requestable.SmeltableOre;
 import com.minecolonies.coremod.entity.ai.basic.AbstractEntityAIUsesFurnace;
-import com.minecolonies.coremod.entity.ai.util.AIState;
-import com.minecolonies.coremod.entity.ai.util.AITarget;
+import com.minecolonies.coremod.entity.ai.statemachine.AITarget;
+import com.minecolonies.coremod.entity.ai.statemachine.states.IAIState;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentData;
 import net.minecraft.enchantment.EnchantmentHelper;
@@ -30,8 +30,8 @@ import static com.minecolonies.api.util.constant.Constants.RESULT_SLOT;
 import static com.minecolonies.api.util.constant.Constants.STACKSIZE;
 import static com.minecolonies.api.util.constant.TranslationConstants.COM_MINECOLONIES_COREMOD_STATUS_IDLING;
 import static com.minecolonies.api.util.constant.TranslationConstants.SMELTING_DOWN;
-import static com.minecolonies.coremod.entity.ai.util.AIState.SMELTER_SMELTING_ITEMS;
-import static com.minecolonies.coremod.entity.ai.util.AIState.START_WORKING;
+import static com.minecolonies.coremod.entity.ai.statemachine.states.AIWorkerState.SMELTER_SMELTING_ITEMS;
+import static com.minecolonies.coremod.entity.ai.statemachine.states.AIWorkerState.START_WORKING;
 
 /**
  * Smelter AI class.
@@ -124,7 +124,7 @@ public class EntityAIWorkSmelter extends AbstractEntityAIUsesFurnace<JobSmelter>
      *
      * @return the next state to go to.
      */
-    private AIState smeltStuff()
+    private IAIState smeltStuff()
     {
         worker.getCitizenStatusHandler().setLatestStatus(new TextComponentTranslation(SMELTING_DOWN));
         if (walkToBuilding())
@@ -194,6 +194,7 @@ public class EntityAIWorkSmelter extends AbstractEntityAIUsesFurnace<JobSmelter>
                 new InvWrapper(worker.getInventoryCitizen()).setStackInSlot(slot, stack);
             }
 
+            worker.decreaseSaturationForAction();
             worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
             worker.setHeldItem(EnumHand.MAIN_HAND, ItemStackUtils.EMPTY);
             return START_WORKING;
@@ -278,16 +279,17 @@ public class EntityAIWorkSmelter extends AbstractEntityAIUsesFurnace<JobSmelter>
                 return;
             }
             worker.getCitizenExperienceHandler().addExperience(BASE_XP_GAIN);
+            worker.decreaseSaturationForAction();
         }
     }
 
     /**
      * If no clear tasks are given, check if something else is to do.
      *
-     * @return the next AIState to traverse to.
+     * @return the next IAIState to traverse to.
      */
     @Override
-    protected AIState checkForAdditionalJobs()
+    protected IAIState checkForAdditionalJobs()
     {
         final int amountOfTools = InventoryUtils.getItemCountInProvider(getOwnBuilding(), EntityAIWorkSmelter::isSmeltableToolOrWeapon)
                                     + InventoryUtils.getItemCountInItemHandler(
@@ -299,7 +301,6 @@ public class EntityAIWorkSmelter extends AbstractEntityAIUsesFurnace<JobSmelter>
         }
         worker.getCitizenStatusHandler().setLatestStatus(new TextComponentTranslation(COM_MINECOLONIES_COREMOD_STATUS_IDLING));
         setDelay(WAIT_AFTER_REQUEST);
-        walkToBuilding();
         return START_WORKING;
     }
 
@@ -318,8 +319,7 @@ public class EntityAIWorkSmelter extends AbstractEntityAIUsesFurnace<JobSmelter>
     protected boolean isSmeltable(final ItemStack stack)
     {
         return !ItemStackUtils.isEmpty(stack) && ItemStackUtils.IS_SMELTABLE.and(
-          itemStack -> itemStack.getItem() instanceof ItemBlock
-                         && ColonyManager.getCompatibilityManager().isOre(((ItemBlock) itemStack.getItem()).getBlock().getDefaultState())).test(stack);
+          itemStack -> ColonyManager.getCompatibilityManager().isOre(stack)).test(stack);
     }
 
     /**
@@ -354,6 +354,7 @@ public class EntityAIWorkSmelter extends AbstractEntityAIUsesFurnace<JobSmelter>
         {
             ItemEnchantedBook.addEnchantment(books, new EnchantmentData(entry.getKey(), entry.getValue()));
         }
+        worker.decreaseSaturationForAction();
         return books;
     }
 }

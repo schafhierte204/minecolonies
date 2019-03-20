@@ -8,7 +8,6 @@ import com.minecolonies.api.util.ItemStackUtils;
 import com.minecolonies.api.util.constant.TypeConstants;
 import com.minecolonies.blockout.views.Window;
 import com.minecolonies.coremod.blocks.huts.BlockHutDeliveryman;
-import com.minecolonies.coremod.blocks.huts.BlockHutWareHouse;
 import com.minecolonies.coremod.blocks.BlockMinecoloniesRack;
 import com.minecolonies.coremod.blocks.ModBlocks;
 import com.minecolonies.coremod.client.gui.WindowHutWareHouse;
@@ -36,9 +35,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.util.Constants;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * Class of the warehouse building.
@@ -206,23 +203,8 @@ public class BuildingWareHouse extends AbstractBuilding
     @Override
     public TileEntityWareHouse getTileEntity()
     {
-        final Colony colony = getColony();
-        if ((tileEntity == null || tileEntity.isInvalid()) && colony != null && colony.getWorld() != null && getLocation() != null
-              && colony.getWorld().getBlockState(getLocation()) != null && colony.getWorld().getBlockState(this.getLocation()).getBlock() instanceof BlockHutWareHouse)
-        {
-            final TileEntity te = getColony().getWorld().getTileEntity(this.getLocation());
-            if (te instanceof TileEntityWareHouse)
-            {
-                tileEntity = (TileEntityWareHouse) te;
-                if (tileEntity.getBuilding() == null)
-                {
-                    tileEntity.setColony(colony);
-                    tileEntity.setBuilding(this);
-                }
-            }
-        }
-
-        return tileEntity;
+        final TileEntity entity = super.getTileEntity();
+        return entity == null ? null : (TileEntityWareHouse) entity;
     }
 
     @Override
@@ -288,9 +270,9 @@ public class BuildingWareHouse extends AbstractBuilding
     }
 
     @Override
-    public ImmutableCollection<IRequestResolver<?>> getResolvers()
+    public ImmutableCollection<IRequestResolver<?>> createResolvers()
     {
-        final ImmutableCollection<IRequestResolver<?>> supers = super.getResolvers();
+        final ImmutableCollection<IRequestResolver<?>> supers = super.createResolvers();
         final ImmutableList.Builder<IRequestResolver<?>> builder = ImmutableList.builder();
 
         builder.addAll(supers);
@@ -322,6 +304,12 @@ public class BuildingWareHouse extends AbstractBuilding
         markDirty();
     }
 
+    @Override
+    public boolean canBeGathered()
+    {
+        return false;
+    }
+
     /**
      * BuildWarehouse View.
      */
@@ -333,7 +321,7 @@ public class BuildingWareHouse extends AbstractBuilding
         private boolean allowUpgrade = true;
 
         /**
-         * Instantiate the deliveryman view.
+         * Instantiate the warehouse view.
          *
          * @param c the colonyview to put it in
          * @param l the positon

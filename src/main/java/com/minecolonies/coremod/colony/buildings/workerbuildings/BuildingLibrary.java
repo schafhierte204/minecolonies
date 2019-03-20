@@ -18,6 +18,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTUtil;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.Tuple;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.Constants;
@@ -108,7 +109,7 @@ public class BuildingLibrary extends AbstractBuildingWorker
 
                 studyItemList.add(new StudyItem(item, skillChance, breakChance));
                 // Keep a certain part of the items in the Chest
-                keepX.put(itemStack -> itemStack.getItem() == item, breakChance < 5 ? 5 : breakChance);
+                keepX.put(itemStack -> itemStack.getItem() == item, new Tuple<>(breakChance < 5 ? 5 : breakChance, true));
             }
             catch (NumberFormatException | ClassCastException e)
             {
@@ -116,6 +117,12 @@ public class BuildingLibrary extends AbstractBuildingWorker
             }
         }
         return studyItemList;
+    }
+
+    @Override
+    public boolean canWorkDuringTheRain()
+    {
+        return true;
     }
 
     @NotNull
@@ -146,9 +153,9 @@ public class BuildingLibrary extends AbstractBuildingWorker
     }
 
     @Override
-    public boolean hasAssignedCitizen()
+    public int getMaxInhabitants()
     {
-        return getAssignedCitizen().size() >= getBuildingLevel() * 2;
+        return getBuildingLevel() * 2;
     }
 
     @Override

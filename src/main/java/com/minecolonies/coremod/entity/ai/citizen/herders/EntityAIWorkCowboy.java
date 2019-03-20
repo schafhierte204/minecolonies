@@ -4,8 +4,8 @@ import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.constant.TranslationConstants;
 import com.minecolonies.coremod.colony.buildings.workerbuildings.BuildingCowboy;
 import com.minecolonies.coremod.colony.jobs.JobCowboy;
-import com.minecolonies.coremod.entity.ai.util.AIState;
-import com.minecolonies.coremod.entity.ai.util.AITarget;
+import com.minecolonies.coremod.entity.ai.statemachine.AITarget;
+import com.minecolonies.coremod.entity.ai.statemachine.states.IAIState;
 import net.minecraft.entity.passive.EntityCow;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
@@ -16,7 +16,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-import static com.minecolonies.coremod.entity.ai.util.AIState.*;
+import static com.minecolonies.coremod.entity.ai.statemachine.states.AIWorkerState.*;
 
 /**
  * The AI behind the {@link JobCowboy} for Breeding, Killing and Milking Cows.
@@ -28,7 +28,6 @@ public class EntityAIWorkCowboy extends AbstractEntityAIHerder<JobCowboy, Entity
      */
     private static final int MAX_ANIMALS_PER_LEVEL = 2;
 
-    private final ItemStack bucketStack = new ItemStack(Items.BUCKET);
     /**
      * Creates the abstract part of the AI.
      * Always use this constructor!
@@ -53,7 +52,9 @@ public class EntityAIWorkCowboy extends AbstractEntityAIHerder<JobCowboy, Entity
     @Override
     public ItemStack getBreedingItem()
     {
-        return new ItemStack(Items.WHEAT);
+        final ItemStack stack = new ItemStack(Items.WHEAT);
+        stack.setCount(stack.getMaxStackSize());
+        return stack;
     }
 
     @Override
@@ -69,31 +70,13 @@ public class EntityAIWorkCowboy extends AbstractEntityAIHerder<JobCowboy, Entity
     }
 
     @Override
-    public AIState decideWhatToDo()
+    public IAIState decideWhatToDo()
     {
-        final AIState result = super.decideWhatToDo();
-        final BuildingCowboy building = (BuildingCowboy) worker.getCitizenColonyHandler().getWorkBuilding();
+        final IAIState result = super.decideWhatToDo();
+        final BuildingCowboy building = getOwnBuilding();
 
-        if (!building.isMilkCows())
-        {
-            if (itemsNeeded.contains(bucketStack))
-            {
-                itemsNeeded.remove(bucketStack);
-            }
-            
-        }
-        else
-        {
-            if (!itemsNeeded.contains(bucketStack))
-            {
-                itemsNeeded.add(bucketStack);
-            }
-        }
-        
         final boolean hasBucket = InventoryUtils.hasItemInItemHandler(new InvWrapper(worker.getInventoryCitizen()), Items.BUCKET, 0);
-
-
-        if (building != null && building.isMilkCows() && result.equals(START_WORKING) && hasBucket)
+        if (building != null && building.isMilkingCows() && result.equals(START_WORKING) && hasBucket)
         {
             return COWBOY_MILK;
         }
@@ -102,23 +85,30 @@ public class EntityAIWorkCowboy extends AbstractEntityAIHerder<JobCowboy, Entity
 
     @NotNull
     @Override
-    protected List<ItemStack> itemsNiceToHave()
+    public List<ItemStack> getExtraItemsNeeded()
     {
-        final List<ItemStack> list = super.itemsNiceToHave();
-        if (! ((BuildingCowboy) worker.getCitizenColonyHandler().getWorkBuilding()).isMilkCows())
+        final List<ItemStack> list = super.getExtraItemsNeeded();
+        if (getOwnBuilding(BuildingCowboy.class).isMilkingCows())
         {
-            list.add(new ItemStack(Items.BUCKET, 1));
+            list.add(new ItemStack(Items.BUCKET));
         }
         return list;
+    }
+
+    @NotNull
+    @Override
+    protected List<ItemStack> itemsNiceToHave()
+    {
+        return getExtraItemsNeeded();
     }
 
     /**
      * Makes the Cowboy "Milk" the cows (Honestly all he does is swap an empty
      * bucket for a milk bucket, there's no actual "Milk" method in {@link EntityCow}
      *
-     * @return The next {@link AIState}
+     * @return The next {@link IAIState}
      */
-    private AIState milkCows()
+    private IAIState milkCows()
     {
         worker.getCitizenStatusHandler().setLatestStatus(new TextComponentTranslation(TranslationConstants.COM_MINECOLONIES_COREMOD_STATUS_COWBOY_MILKING));
 

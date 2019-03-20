@@ -3,6 +3,7 @@ package com.minecolonies.coremod.entity.ai.basic;
 import com.minecolonies.api.configuration.Configurations;
 import com.minecolonies.api.util.*;
 import com.minecolonies.coremod.colony.jobs.AbstractJob;
+import com.minecolonies.coremod.colony.managers.interfaces.IStatisticAchievementManager;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.item.EntityItem;
@@ -31,7 +32,7 @@ import java.util.stream.Collectors;
  *
  * @param <J> the job type this AI has to do.
  */
-public abstract class AbstractEntityAIInteract<J extends AbstractJob> extends AbstractEntityAICrafting<J>
+public abstract class AbstractEntityAIInteract<J extends AbstractJob> extends AbstractEntityAISkill<J>
 {
     /**
      * The amount of xp the entity gains per block mined.
@@ -132,6 +133,30 @@ public abstract class AbstractEntityAIInteract<J extends AbstractJob> extends Ab
      */
     protected final boolean mineBlock(@NotNull final BlockPos blockToMine, @NotNull final BlockPos safeStand)
     {
+        return mineBlock(blockToMine, safeStand, true, true, null);
+    }
+
+    /**
+     * Will simulate mining a block with particles ItemDrop etc.
+     * Attention:
+     * Because it simulates delay, it has to be called 2 times.
+     * So make sure the code path up to this function is reachable a second time.
+     * And make sure to immediately exit the update function when this returns false.
+     *
+     * @param blockToMine      the block that should be mined
+     * @param safeStand        the block we want to stand on to do that
+     * @param damageTool       boolean wether we want to damage the tool used
+     * @param getDrops         boolean wether we want to get Drops
+     * @param blockBreakAction Runnable that is used instead of the default block break action, can be null
+     * @return true once we're done
+     */
+    protected final boolean mineBlock(
+      @NotNull final BlockPos blockToMine,
+      @NotNull final BlockPos safeStand,
+      @NotNull final boolean damageTool,
+      @NotNull final boolean getDrops,
+      final Runnable blockBreakAction)
+    {
         final IBlockState curBlockState = world.getBlockState(blockToMine);
         @Nullable final Block curBlock = curBlockState.getBlock();
         if (curBlock == null
@@ -155,41 +180,51 @@ public abstract class AbstractEntityAIInteract<J extends AbstractJob> extends Ab
 
         final ItemStack tool = worker.getHeldItemMainhand();
 
-        //calculate fortune enchantment
-        final int fortune = ItemStackUtils.getFortuneOf(tool);
-
-        //check if tool has Silk Touch
-        final boolean silkTouch = ItemStackUtils.hasSilkTouch(tool);
-
-        //create list for all item drops to be stored in
-        final List<ItemStack> localItems = new ArrayList<ItemStack>();
-
-        //Checks to see if the equipped tool has Silk Touch AND if the blocktoMine has a viable Item SilkTouch can get.
-        if (silkTouch && Item.getItemFromBlock(BlockPosUtil.getBlock(world, blockToMine)) != null)
+        if (getDrops)
         {
-            //Stores Silk Touch Block in localItems
-            final ItemStack silkItem = new ItemStack(Item.getItemFromBlock(BlockPosUtil.getBlock(world, blockToMine)), 1);
-            localItems.add(silkItem);
+            //calculate fortune enchantment
+            final int fortune = ItemStackUtils.getFortuneOf(tool);
+
+            //check if tool has Silk Touch
+            final boolean silkTouch = ItemStackUtils.hasSilkTouch(tool);
+
+            //create list for all item drops to be stored in
+            final List<ItemStack> localItems = new ArrayList<ItemStack>();
+
+            //Checks to see if the equipped tool has Silk Touch AND if the blocktoMine has a viable Item SilkTouch can get.
+            if (silkTouch && Item.getItemFromBlock(BlockPosUtil.getBlock(world, blockToMine)) != null)
+            {
+                //Stores Silk Touch Block in localItems
+                final ItemStack silkItem = new ItemStack(Item.getItemFromBlock(BlockPosUtil.getBlock(world, blockToMine)), 1);
+                localItems.add(silkItem);
+            }
+            //If Silk Touch doesn't work, get blocks with Fortune value as normal.
+            else
+            {
+                localItems.addAll(BlockPosUtil.getBlockDrops(world, blockToMine, fortune));
+            }
+
+            //add the drops to the citizen
+            for (final ItemStack item : localItems)
+            {
+                InventoryUtils.transferItemStackIntoNextBestSlotInItemHandler(item, new InvWrapper(worker.getInventoryCitizen()));
+            }
         }
-        //If Silk Touch doesn't work, get blocks with Fortune value as normal.
+        //if block in statistic then increment that statistic.
+        triggerMinedBlock(curBlockState);
+
+        if (blockBreakAction == null)
+        {
+            //Break the block
+            worker.getCitizenItemHandler().breakBlockWithToolInHand(blockToMine);
+        }
         else
         {
-            localItems.addAll(BlockPosUtil.getBlockDrops(world, blockToMine, fortune));
+            blockBreakAction.run();
         }
 
-        //if block in statistic then increment that statistic.
-        triggerMinedBlock(blockToMine);
 
-        //Break the block
-        worker.getCitizenItemHandler().breakBlockWithToolInHand(blockToMine);
-
-        //add the drops to the citizen
-        for (final ItemStack item : localItems)
-        {
-            InventoryUtils.transferItemStackIntoNextBestSlotInItemHandler(item, new InvWrapper(worker.getInventoryCitizen()));
-        }
-
-        if (tool != null)
+        if (tool != null && damageTool)
         {
             tool.getItem().onUpdate(tool, world, worker, worker.getCitizenInventoryHandler().findFirstSlotInInventoryWith(tool.getItem(), tool.getItemDamage()), true);
         }
@@ -237,32 +272,38 @@ public abstract class AbstractEntityAIInteract<J extends AbstractJob> extends Ab
         return hasNotDelayed(getBlockMiningDelay(curBlock, blockToMine));
     }
 
-    private void triggerMinedBlock(@NotNull final BlockPos blockToMine)
+    /**
+     * Trigger that a block was succesfully mined.
+     * @param blockToMine the mined blockState.
+     */
+    protected void triggerMinedBlock(@NotNull final IBlockState blockToMine)
     {
-        if (world.getBlockState(blockToMine).getBlock() == (Blocks.COAL_ORE)
-              || world.getBlockState(blockToMine).getBlock() == (Blocks.IRON_ORE)
-              || world.getBlockState(blockToMine).getBlock() == (Blocks.LAPIS_ORE)
-              || world.getBlockState(blockToMine).getBlock() == (Blocks.GOLD_ORE)
-              || world.getBlockState(blockToMine).getBlock() == (Blocks.REDSTONE_ORE)
-              || world.getBlockState(blockToMine).getBlock() == (Blocks.EMERALD_ORE))
+        final IStatisticAchievementManager statsManager = this.getOwnBuilding().getColony().getStatsManager();
+        final Block block = blockToMine.getBlock();
+        if (block == (Blocks.COAL_ORE)
+              || block == (Blocks.IRON_ORE)
+              || block == (Blocks.LAPIS_ORE)
+              || block == (Blocks.GOLD_ORE)
+              || block == (Blocks.REDSTONE_ORE)
+              || block == (Blocks.EMERALD_ORE))
         {
-            this.getOwnBuilding().getColony().getStatsManager().incrementStatistic("ores");
+            statsManager.incrementStatistic("ores");
         }
-        if (world.getBlockState(blockToMine).getBlock().equals(Blocks.DIAMOND_ORE))
+        if (block == Blocks.DIAMOND_ORE)
         {
-            this.getOwnBuilding().getColony().getStatsManager().incrementStatistic("diamonds");
+            statsManager.incrementStatistic("diamonds");
         }
-        if (world.getBlockState(blockToMine).getBlock().equals(Blocks.CARROTS))
+        if (block == Blocks.CARROTS)
         {
-            this.getOwnBuilding().getColony().getStatsManager().incrementStatistic("carrots");
+            statsManager.incrementStatistic("carrots");
         }
-        if (world.getBlockState(blockToMine).getBlock().equals(Blocks.POTATOES))
+        if (block == Blocks.POTATOES)
         {
-            this.getOwnBuilding().getColony().getStatsManager().incrementStatistic("potatoes");
+            statsManager.incrementStatistic("potatoes");
         }
-        if (world.getBlockState(blockToMine).getBlock().equals(Blocks.WHEAT))
+        if (block == Blocks.WHEAT)
         {
-            this.getOwnBuilding().getColony().getStatsManager().incrementStatistic("wheat");
+            statsManager.incrementStatistic("wheat");
         }
     }
 

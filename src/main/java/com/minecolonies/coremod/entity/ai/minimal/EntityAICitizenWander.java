@@ -6,7 +6,6 @@ import com.minecolonies.api.util.CompatibilityUtils;
 import com.minecolonies.coremod.entity.EntityCitizen;
 import net.minecraft.entity.ai.EntityAIBase;
 import net.minecraft.entity.ai.RandomPositionGenerator;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 
 /**
@@ -50,16 +49,6 @@ public class EntityAICitizenWander extends EntityAIBase
         }
 
         Vec3d vec3d = null;
-        if(citizen.getCitizenData().getSaturation() <= 0)
-        {
-            final BlockPos pos = citizen.getCitizenColonyHandler().getColony().getBuildingManager().getBestRestaurant(citizen);
-            if(pos != null)
-            {
-                vec3d = new Vec3d(pos);
-            }
-        }
-
-
         if(vec3d == null)
         {
             vec3d = RandomPositionGenerator.getLandPos(citizen, 10, 7);

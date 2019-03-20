@@ -5,6 +5,7 @@ import com.minecolonies.api.colony.requestsystem.StandardFactoryController;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.crafting.IRecipeStorage;
 import com.minecolonies.api.util.BlockPosUtil;
+import com.minecolonies.api.util.LanguageHandler;
 import com.minecolonies.api.util.constant.TypeConstants;
 import com.minecolonies.coremod.colony.Colony;
 import com.minecolonies.coremod.colony.ColonyManager;
@@ -13,12 +14,15 @@ import com.minecolonies.coremod.colony.buildings.AbstractBuildingWorker;
 import com.minecolonies.coremod.colony.buildings.views.AbstractBuildingView;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+
+import static com.minecolonies.api.util.constant.TranslationConstants.UNABLE_TO_ADD_RECIPE_MESSAGE;
 
 /**
  * Message class to add and remove recipes.
@@ -56,23 +60,33 @@ public class AddRemoveRecipeMessage extends AbstractMessage<AddRemoveRecipeMessa
      * @param input the input.
      * @param gridSize the gridSize.
      * @param primaryOutput the primary output.
-     * @param secondaryOutput the secondary output.
      * @param building the building.
      * @param remove true if remove.
      */
     public AddRemoveRecipeMessage(
             final List<ItemStack> input,
             final int gridSize,
-            final ItemStack primaryOutput,
-            final List<ItemStack> secondaryOutput, final AbstractBuildingView building, final boolean remove)
+            final ItemStack primaryOutput, final AbstractBuildingView building, final boolean remove)
     {
         super();
-        storage = StandardFactoryController.getInstance().getNewInstance(
-                TypeConstants.RECIPE,
-                StandardFactoryController.getInstance().getNewInstance(TypeConstants.ITOKEN),
-                input,
-                gridSize,
-                primaryOutput);
+        if (gridSize == 1)
+        {
+            storage = StandardFactoryController.getInstance().getNewInstance(
+              TypeConstants.RECIPE,
+              StandardFactoryController.getInstance().getNewInstance(TypeConstants.ITOKEN),
+              input,
+              gridSize,
+              primaryOutput, Blocks.FURNACE);
+        }
+        else
+        {
+            storage = StandardFactoryController.getInstance().getNewInstance(
+              TypeConstants.RECIPE,
+              StandardFactoryController.getInstance().getNewInstance(TypeConstants.ITOKEN),
+              input,
+              gridSize,
+              primaryOutput);
+        }
         this.remove = remove;
         this.dimension = building.getColony().getDimension();
         this.building = building.getLocation();
@@ -160,7 +174,14 @@ public class AddRemoveRecipeMessage extends AbstractMessage<AddRemoveRecipeMessa
             }
             else
             {
-                ((AbstractBuildingWorker) buildingWorker).addRecipe(token);
+                if (!((AbstractBuildingWorker) buildingWorker).addRecipe(token))
+                {
+                    LanguageHandler.sendPlayerMessage(player, UNABLE_TO_ADD_RECIPE_MESSAGE, ((AbstractBuildingWorker) buildingWorker).getJobName());
+                }
+                else
+                {
+                    LanguageHandler.sendPlayerMessage(player, "com.minecolonies.coremod.gui.recipe.done");
+                }
             }
 
             buildingWorker.markDirty();

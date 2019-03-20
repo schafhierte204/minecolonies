@@ -1,14 +1,13 @@
 package com.minecolonies.coremod.tileentities;
 
 import com.minecolonies.api.colony.permissions.Action;
-import com.minecolonies.api.util.InventoryFunctions;
-import com.minecolonies.api.util.ItemStackUtils;
-import com.minecolonies.api.util.Log;
+import com.minecolonies.api.util.*;
 import com.minecolonies.coremod.colony.Colony;
 import com.minecolonies.coremod.colony.ColonyManager;
 import com.minecolonies.coremod.colony.ColonyView;
 import com.minecolonies.coremod.colony.buildings.AbstractBuildingContainer;
 import com.minecolonies.coremod.colony.buildings.views.AbstractBuildingView;
+import com.minecolonies.coremod.inventory.api.CombinedItemHandler;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -16,11 +15,27 @@ import net.minecraft.network.NetworkManager;
 import net.minecraft.network.play.server.SPacketUpdateTileEntity;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.tileentity.TileEntityChest;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.world.World;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.capabilities.ICapabilityProvider;
+import net.minecraftforge.items.CapabilityItemHandler;
+import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.items.IItemHandlerModifiable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
+import static com.minecolonies.api.util.constant.BuildingConstants.MIN_SLOTS_FOR_RECOGNITION;
 
 /**
  * Class which handles the tileEntity of our colonyBuildings.
@@ -58,6 +73,11 @@ public class TileEntityColonyBuilding extends TileEntityChest
      * The style of the building.
      */
     private String style = "";
+
+    /**
+     * Create the combined inv wrapper for the building.
+     */
+    private CombinedItemHandler combinedInv;
 
     /**
      * Empty standard constructor.
@@ -112,7 +132,7 @@ public class TileEntityColonyBuilding extends TileEntityChest
             {
                 //log on the server
                 Log.getLogger().warn(String.format("TileEntityColonyBuilding at %s:[%d,%d,%d] had colony.",
-                                getWorld().getWorldInfo().getWorldName(), pos.getX(), pos.getY(), pos.getZ()));
+                  getWorld().getWorldInfo().getWorldName(), pos.getX(), pos.getY(), pos.getZ()));
             }
         }
 
@@ -159,9 +179,9 @@ public class TileEntityColonyBuilding extends TileEntityChest
             {
                 final TileEntity entity = getWorld().getTileEntity(pos);
                 if ((entity instanceof TileEntityRack
-                        && ((TileEntityRack) entity).hasItemStack(notEmptyPredicate))
-                        || (entity instanceof TileEntityChest
-                        && isInTileEntity((TileEntityChest) entity, notEmptyPredicate)))
+                       && ((TileEntityRack) entity).hasItemStack(notEmptyPredicate))
+                      || (entity instanceof TileEntityChest
+                            && isInTileEntity((TileEntityChest) entity, notEmptyPredicate)))
                 {
                     return pos;
                 }
@@ -262,6 +282,16 @@ public class TileEntityColonyBuilding extends TileEntityChest
         building = b;
     }
 
+    @Override
+    public ITextComponent getDisplayName()
+    {
+        if (blockType == null)
+        {
+            return super.getDisplayName();
+        }
+        return new TextComponentString(LanguageHandler.format(blockType.getTranslationKey() + ".name"));
+    }
+
     /**
      * Returns the view of the building associated with the tile entity.
      *
@@ -269,7 +299,7 @@ public class TileEntityColonyBuilding extends TileEntityChest
      */
     public AbstractBuildingView getBuildingView()
     {
-        final ColonyView c = ColonyManager.getColonyView(colonyId);
+        final ColonyView c = ColonyManager.getColonyView(colonyId, world.provider.getDimension());
         return c == null ? null : c.getBuilding(getPosition());
     }
 
@@ -311,6 +341,12 @@ public class TileEntityColonyBuilding extends TileEntityChest
                 colonyId = tempColony.getID();
             }
         }
+
+        /*
+         * We want a new inventory every tick.
+         * The accessed inventory in the same tick must be the same.
+         */
+        combinedInv = null;
     }
 
     @Override
@@ -369,5 +405,56 @@ public class TileEntityColonyBuilding extends TileEntityChest
     public void setStyle(final String style)
     {
         this.style = style;
+    }
+
+    @Override
+    public boolean hasCapability(@NotNull final Capability<?> capability, final EnumFacing facing)
+    {
+        if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY)
+        {
+            return true;
+        }
+        return super.hasCapability(capability, facing);
+    }
+
+    @Override
+    public <T> T getCapability(@NotNull final Capability<T> capability, final EnumFacing facing)
+    {
+        if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY && getBuilding() != null)
+        {
+            if (this.combinedInv == null)
+            {
+                //Add additional containers
+                final Set<ICapabilityProvider> providers = new HashSet<>();
+                final World world = colony.getWorld();
+                if (world != null)
+                {
+                    //Add additional containers
+                    providers.addAll(building.getAdditionalCountainers().stream()
+                                       .map(world::getTileEntity)
+                                       .collect(Collectors.toSet()));
+                    providers.removeIf(Objects::isNull);
+                }
+
+                final List<IItemHandler> handlers = providers.stream()
+                                                      .flatMap(provider -> InventoryUtils.getItemHandlersFromProvider(provider).stream())
+                                                      .collect(Collectors.toList());
+                final T cap = super.getCapability(capability, facing);
+                if (cap instanceof IItemHandler)
+                {
+                    handlers.add((IItemHandler) cap);
+                }
+                
+                this.combinedInv = new CombinedItemHandler(building.getSchematicName(), handlers.stream()
+                                                                                          .map(handler -> (IItemHandlerModifiable) handler)
+                                                                                          .distinct()
+                                                                                          .filter(handler -> handler instanceof IItemHandlerModifiable
+                                                                                                               && handler.getSlots() >= MIN_SLOTS_FOR_RECOGNITION)
+                                                                                          .toArray(IItemHandlerModifiable[]::new));
+            }
+
+            return (T) this.combinedInv;
+        }
+        return super.getCapability(capability, facing);
     }
 }

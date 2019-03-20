@@ -7,6 +7,7 @@ import com.minecolonies.api.util.CompatibilityUtils;
 import com.minecolonies.api.util.Log;
 import com.minecolonies.coremod.colony.Colony;
 import com.minecolonies.coremod.entity.EntityCitizen;
+import com.minecolonies.coremod.entity.ai.mobs.pirates.AbstractEntityPirate;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.pathfinding.*;
@@ -28,11 +29,7 @@ import java.util.concurrent.Future;
 public class PathNavigate extends PathNavigateGround
 {
     private static final double ON_PATH_SPEED_MULTIPLIER = 1.3D;
-
-    /**
-     * The range multiplier for the lumberjack.
-     */
-    //private static final int RANGE_MULTIPLIER_LJ = 4;
+    private static final double PIRATE_SWIM_BONUS        = 20;
 
     //  Parent class private members
     private final EntityLiving ourEntity;
@@ -110,6 +107,12 @@ public class PathNavigate extends PathNavigateGround
 
     public double getSpeed()
     {
+        if (ourEntity instanceof AbstractEntityPirate && ourEntity.isInWater())
+        {
+            speed = walkSpeed * PIRATE_SWIM_BONUS;
+            return walkSpeed * PIRATE_SWIM_BONUS;
+        }
+        speed = walkSpeed;
         return walkSpeed;
     }
 
@@ -135,6 +138,7 @@ public class PathNavigate extends PathNavigateGround
         {
             return false;
         }
+
         moveToXYZ(x, y, z, speed);
         return true;
     }
@@ -161,13 +165,13 @@ public class PathNavigate extends PathNavigateGround
         final int newY = (int) y;
         final int newZ = MathHelper.floor(z);
 
-
         if ((destination != null
                && BlockPosUtil.isEqual(destination, newX, newY, newZ))
               || (originalDestination != null
                     && BlockPosUtil.isEqual(originalDestination, newX, newY, newZ)
                     && pathResult != null
-                    && pathResult.isInProgress()))
+                    && pathResult.isInProgress())
+              || (pathResult != null && (pathResult.isInProgress() || pathResult.isComputing())))
         {
             return pathResult;
         }
@@ -176,15 +180,15 @@ public class PathNavigate extends PathNavigateGround
         @NotNull final BlockPos dest = new BlockPos(newX, newY, newZ);
 
         return setPathJob(
-          new PathJobMoveToLocation(CompatibilityUtils.getWorld(ourEntity), start, dest, (int) getPathSearchRange()),
+          new PathJobMoveToLocation(CompatibilityUtils.getWorld(ourEntity), start, dest, (int) getPathSearchRange(), ourEntity),
           dest, speed);
     }
 
     @Nullable
     private PathResult setPathJob(
-                                   @NotNull final AbstractPathJob job,
-                                   final BlockPos dest,
-                                   final double speed)
+      @NotNull final AbstractPathJob job,
+      final BlockPos dest,
+      final double speed)
     {
         clearPath();
 
@@ -246,7 +250,7 @@ public class PathNavigate extends PathNavigateGround
                     return;
                 }
 
-                setPath(future.get(), walkSpeed);
+                setPath(future.get(), getSpeed());
 
                 pathResult.setPathLength(getPath().getCurrentPathLength());
                 pathResult.setStatus(PathResult.Status.IN_PROGRESS_FOLLOWING);
@@ -336,17 +340,18 @@ public class PathNavigate extends PathNavigateGround
                     vec3d = this.getPath().getPosition(this.ourEntity);
                 }
 
-                this.ourEntity.getMoveHelper().setMoveTo(vec3d.x, vec3d.y, vec3d.z, walkSpeed);
+                ourEntity.setAIMoveSpeed((float) getSpeed());
+                this.ourEntity.getMoveHelper().setMoveTo(vec3d.x, vec3d.y, vec3d.z, getSpeed());
             }
             else
             {
                 if (BlockUtils.isPathBlock(world.getBlockState(ourEntity.getPosition().down()).getBlock()))
                 {
-                    speed = ON_PATH_SPEED_MULTIPLIER * walkSpeed;
+                    speed = ON_PATH_SPEED_MULTIPLIER * getSpeed();
                 }
                 else
                 {
-                    speed = walkSpeed;
+                    speed = getSpeed();
                 }
             }
         }
@@ -434,7 +439,7 @@ public class PathNavigate extends PathNavigateGround
         }
 
         return (PathJobFindTree.TreePathResult) setPathJob(
-          new PathJobFindTree(CompatibilityUtils.getWorld(entity), start, buildingPos, range, treesToCut, colony), null, speed);
+          new PathJobFindTree(CompatibilityUtils.getWorld(entity), start, buildingPos, range, treesToCut, colony, ourEntity), null, speed);
     }
 
     /**
@@ -450,7 +455,7 @@ public class PathNavigate extends PathNavigateGround
     {
         @NotNull final BlockPos start = AbstractPathJob.prepareStart(ourEntity);
         return (PathJobFindWater.WaterPathResult) setPathJob(
-          new PathJobFindWater(CompatibilityUtils.getWorld(ourEntity), start, ((EntityCitizen) ourEntity).getCitizenColonyHandler().getWorkBuilding().getLocation(), range, ponds), null, speed);
+          new PathJobFindWater(CompatibilityUtils.getWorld(ourEntity), start, ((EntityCitizen) ourEntity).getCitizenColonyHandler().getWorkBuilding().getLocation(), range, ponds, ourEntity), null, speed);
     }
 
     /**
@@ -494,7 +499,7 @@ public class PathNavigate extends PathNavigateGround
         @NotNull final BlockPos start = AbstractPathJob.prepareStart(ourEntity);
 
         return setPathJob(
-          new PathJobMoveAwayFromLocation(CompatibilityUtils.getWorld(ourEntity), start, avoid, (int) range, (int) getPathSearchRange()),
+          new PathJobMoveAwayFromLocation(CompatibilityUtils.getWorld(ourEntity), start, avoid, (int) range, (int) getPathSearchRange(), ourEntity),
           null, speed);
     }
 }

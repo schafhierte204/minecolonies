@@ -7,6 +7,9 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.entity.RenderBiped;
 import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraft.client.renderer.entity.layers.LayerBipedArmor;
+import net.minecraft.item.EnumAction;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.EnumHandSide;
 import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 
@@ -35,6 +38,15 @@ public class RenderBipedCitizen extends RenderBiped<EntityCitizen>
         idToMaleModelMap.put(Model.FISHERMAN, new ModelEntityFishermanMale());
         idToMaleModelMap.put(Model.BAKER, new ModelEntityBakerMale());
         idToMaleModelMap.put(Model.COMPOSTER, new ModelEntityComposterMale());
+        idToMaleModelMap.put(Model.COOK, new ModelEntityCookMale());
+        idToMaleModelMap.put(Model.CHICKEN_FARMER, new ModelEntityChickenFarmerMale());
+        idToMaleModelMap.put(Model.SHEEP_FARMER, new ModelEntitySheepFarmerMale());
+        idToMaleModelMap.put(Model.PIG_FARMER, new ModelEntityPigFarmerMale());
+        idToMaleModelMap.put(Model.COW_FARMER, new ModelEntityCowFarmerMale());
+        idToMaleModelMap.put(Model.SMELTER, new ModelEntitySmelterMale());
+        idToMaleModelMap.put(Model.STUDENT, new ModelEntityStudentMale());
+        idToMaleModelMap.put(Model.CRAFTER, new ModelEntityCrafterMale());
+        idToMaleModelMap.put(Model.BLACKSMITH, new ModelEntityBlacksmithMale());
 
         idToFemaleModelMap.put(Model.NOBLE, new ModelEntityCitizenFemaleNoble());
         idToFemaleModelMap.put(Model.ARISTOCRAT, new ModelEntityCitizenFemaleAristocrat());
@@ -48,7 +60,18 @@ public class RenderBipedCitizen extends RenderBiped<EntityCitizen>
         idToFemaleModelMap.put(Model.KNIGHT_GUARD, new ModelBiped());
         idToFemaleModelMap.put(Model.BAKER, new ModelEntityBakerFemale());
         idToFemaleModelMap.put(Model.COMPOSTER, new ModelEntityComposterFemale());
+        idToFemaleModelMap.put(Model.COOK, new ModelEntityCookFemale());
+        idToFemaleModelMap.put(Model.CHICKEN_FARMER, new ModelEntityChickenFarmerFemale());
+        idToFemaleModelMap.put(Model.COW_FARMER, new ModelEntityCowFarmerFemale());
+        idToFemaleModelMap.put(Model.PIG_FARMER, new ModelEntityPigFarmerFemale());
+        idToFemaleModelMap.put(Model.SHEEP_FARMER, new ModelEntitySheepFarmerFemale());
+        idToFemaleModelMap.put(Model.SMELTER, new ModelEntitySmelterFemale());
+        idToFemaleModelMap.put(Model.STUDENT, new ModelEntityStudentFemale());
+        idToFemaleModelMap.put(Model.CRAFTER, new ModelEntityCrafterFemale());
+        idToFemaleModelMap.put(Model.BLACKSMITH, new ModelEntityBlacksmithFemale());
+
     }
+
     /**
      * Renders model, see {@link RenderBiped}.
      *
@@ -57,7 +80,7 @@ public class RenderBipedCitizen extends RenderBiped<EntityCitizen>
     public RenderBipedCitizen(final RenderManager renderManagerIn)
     {
         super(renderManagerIn, defaultModelMale, (float) SHADOW_SIZE);
-        this.addLayer(new LayerBipedArmor(this));
+        super.addLayer(new LayerBipedArmor(this));
     }
 
     @Override
@@ -71,6 +94,60 @@ public class RenderBipedCitizen extends RenderBiped<EntityCitizen>
         if (mainModel == null)
         {
             mainModel = citizen.isFemale() ? defaultModelFemale : defaultModelMale;
+        }
+
+        final ModelBiped citizenModel = (ModelBiped) mainModel;
+
+        final ItemStack mainHandStack = citizen.getHeldItemMainhand();
+        final ItemStack offHandStack = citizen.getHeldItemOffhand();
+        ModelBiped.ArmPose armPoseMainHand = ModelBiped.ArmPose.EMPTY;
+        ModelBiped.ArmPose armPoseOffHand = ModelBiped.ArmPose.EMPTY;
+
+        final EnumAction enumActionMainHand;
+        if (!mainHandStack.isEmpty())
+        {
+            armPoseMainHand = ModelBiped.ArmPose.ITEM;
+            if (citizen.getItemInUseCount() > 0)
+            {
+                enumActionMainHand = mainHandStack.getItemUseAction();
+                if (enumActionMainHand == EnumAction.BLOCK)
+                {
+                    armPoseMainHand = ModelBiped.ArmPose.BLOCK;
+                }
+                else if (enumActionMainHand == EnumAction.BOW)
+                {
+                    armPoseMainHand = ModelBiped.ArmPose.BOW_AND_ARROW;
+                }
+            }
+        }
+
+        final EnumAction enumActionOffHand;
+        if (!offHandStack.isEmpty())
+        {
+            armPoseOffHand = ModelBiped.ArmPose.ITEM;
+            if (citizen.getItemInUseCount() > 0)
+            {
+                enumActionOffHand = offHandStack.getItemUseAction();
+                if (enumActionOffHand == EnumAction.BLOCK)
+                {
+                    armPoseOffHand = ModelBiped.ArmPose.BLOCK;
+                }
+                else if (enumActionOffHand == EnumAction.BOW)
+                {
+                    armPoseOffHand = ModelBiped.ArmPose.BOW_AND_ARROW;
+                }
+            }
+        }
+
+        if (citizen.getPrimaryHand() == EnumHandSide.RIGHT)
+        {
+            citizenModel.rightArmPose = armPoseMainHand;
+            citizenModel.leftArmPose = armPoseOffHand;
+        }
+        else
+        {
+            citizenModel.rightArmPose = armPoseOffHand;
+            citizenModel.leftArmPose = armPoseMainHand;
         }
 
         super.doRender(citizen, d, d1, d2, f, f1);
@@ -90,7 +167,7 @@ public class RenderBipedCitizen extends RenderBiped<EntityCitizen>
     }
 
     @Override
-    protected void applyRotations(final EntityCitizen entityLiving, final float p_77043_2_, final float rotationYaw, final float partialTicks)
+    protected void applyRotations(final EntityCitizen entityLiving, final float rotationHead, final float rotationYaw, final float partialTicks)
     {
         if (entityLiving.isEntityAlive() && entityLiving.getCitizenSleepHandler().isAsleep())
         {
@@ -100,7 +177,7 @@ public class RenderBipedCitizen extends RenderBiped<EntityCitizen>
         }
         else
         {
-            super.applyRotations(entityLiving, p_77043_2_, rotationYaw, partialTicks);
+            super.applyRotations(entityLiving, rotationHead, rotationYaw, partialTicks);
         }
     }
 
@@ -133,7 +210,13 @@ public class RenderBipedCitizen extends RenderBiped<EntityCitizen>
         COW_FARMER("cowfarmer", 1),
         PIG_FARMER("pigfarmer", 1),
         CHICKEN_FARMER("chickenfarmer", 1),
-        COMPOSTER("composter", 1);
+        COMPOSTER("composter", 1),
+        SMELTER("smelter", 1),
+        COOK("cook", 1),
+        STUDENT("student", 6),
+        CRAFTER("crafter", 1),
+        BLACKSMITH("Blacksmith", 1);
+
         /**
          * String describing the citizen.
          * Used by the renderer.

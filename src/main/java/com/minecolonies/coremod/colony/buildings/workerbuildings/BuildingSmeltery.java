@@ -2,19 +2,20 @@ package com.minecolonies.coremod.colony.buildings.workerbuildings;
 
 import com.minecolonies.api.util.ItemStackUtils;
 import com.minecolonies.blockout.views.Window;
-import com.minecolonies.coremod.client.gui.WindowHutWorkerPlaceholder;
+import com.minecolonies.coremod.client.gui.WindowHutSmelter;
 import com.minecolonies.coremod.colony.CitizenData;
 import com.minecolonies.coremod.colony.Colony;
 import com.minecolonies.coremod.colony.ColonyManager;
 import com.minecolonies.coremod.colony.ColonyView;
 import com.minecolonies.coremod.colony.buildings.AbstractBuildingFurnaceUser;
-import com.minecolonies.coremod.colony.buildings.AbstractBuildingWorker;
+import com.minecolonies.coremod.colony.buildings.views.FilterableListView;
 import com.minecolonies.coremod.colony.jobs.AbstractJob;
 import com.minecolonies.coremod.colony.jobs.JobSmelter;
 import net.minecraft.item.ItemArmor;
 import net.minecraft.item.ItemSword;
 import net.minecraft.item.ItemTool;
 import net.minecraft.tileentity.TileEntityFurnace;
+import net.minecraft.util.Tuple;
 import net.minecraft.util.math.BlockPos;
 import org.jetbrains.annotations.NotNull;
 
@@ -54,11 +55,11 @@ public class BuildingSmeltery extends AbstractBuildingFurnaceUser
     public BuildingSmeltery(final Colony c, final BlockPos l)
     {
         super(c, l);
-        keepX.put(ColonyManager.getCompatibilityManager()::isOre, Integer.MAX_VALUE);
-        keepX.put(TileEntityFurnace::isItemFuel, Integer.MAX_VALUE);
+        keepX.put(ColonyManager.getCompatibilityManager()::isOre, new Tuple<>(Integer.MAX_VALUE, true));
+        keepX.put(TileEntityFurnace::isItemFuel, new Tuple<>(Integer.MAX_VALUE, true));
         keepX.put(stack -> !ItemStackUtils.isEmpty(stack)
                 && (stack.getItem() instanceof ItemSword || stack.getItem() instanceof ItemTool || stack.getItem() instanceof ItemArmor)
-                , STUFF_TO_KEEP);
+                , new Tuple<>(STUFF_TO_KEEP, true));
     }
 
     @NotNull
@@ -108,9 +109,9 @@ public class BuildingSmeltery extends AbstractBuildingFurnaceUser
     }
 
     /**
-     * BuildingCook View.
+     * Smelter building View.
      */
-    public static class View extends AbstractBuildingWorker.View
+    public static class View extends FilterableListView
     {
         /**
          * Instantiate the smeltery view.
@@ -127,7 +128,7 @@ public class BuildingSmeltery extends AbstractBuildingFurnaceUser
         @Override
         public Window getWindow()
         {
-            return new WindowHutWorkerPlaceholder<>(this, SMELTERY_DESC);
+            return new WindowHutSmelter(this);
         }
 
         @NotNull

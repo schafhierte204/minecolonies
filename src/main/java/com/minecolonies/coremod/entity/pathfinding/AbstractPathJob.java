@@ -12,10 +12,12 @@ import net.minecraft.block.*;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.EntityLiving;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.init.Blocks;
 import net.minecraft.pathfinding.Path;
 import net.minecraft.pathfinding.PathPoint;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.ChunkCache;
@@ -50,6 +52,11 @@ public abstract class AbstractPathJob implements Callable<Path>
     private static final   BlockPos BLOCKPOS_WEST         = new BlockPos(-1, 0, 0);
     private static final   int      MAX_Y                 = 256;
     private static final   int      MIN_Y                 = 0;
+
+    /**
+     * The maximum amount of nodes to Map, set in the config.
+     */
+    private static final int MAX_NODES_VISITED = Configurations.pathfinding.pathfindingMaxNodes;
 
     /**
      * Additional cost of jumping and dropping - base 1.
@@ -116,16 +123,22 @@ public abstract class AbstractPathJob implements Callable<Path>
     private       int                totalNodesVisited            = 0;
 
     /**
+     * The entity this job belongs to.
+     */
+    private EntityLivingBase entity;
+
+    /**
      * AbstractPathJob constructor.
      *
      * @param world the world within which to path.
      * @param start the start position from which to path from.
      * @param end   the end position to path to.
      * @param range maximum path range.
+     * @param entity the entity.
      */
-    public AbstractPathJob(final World world, @NotNull final BlockPos start, @NotNull final BlockPos end, final int range)
+    public AbstractPathJob(final World world, @NotNull final BlockPos start, @NotNull final BlockPos end, final int range, final EntityLivingBase entity)
     {
-        this(world, start, end, range, new PathResult());
+        this(world, start, end, range, new PathResult(), entity);
     }
 
     /**
@@ -136,9 +149,10 @@ public abstract class AbstractPathJob implements Callable<Path>
      * @param end    the end position to path to
      * @param range  maximum path range.
      * @param result path result.
-     * @see AbstractPathJob#AbstractPathJob(World, BlockPos, BlockPos, int)
+     * @param entity the entity.
+     * @see AbstractPathJob#AbstractPathJob(World, BlockPos, BlockPos, int, EntityLivingBase)
      */
-    public AbstractPathJob(final World world, @NotNull final BlockPos start, @NotNull final BlockPos end, final int range, final PathResult result)
+    public AbstractPathJob(final World world, @NotNull final BlockPos start, @NotNull final BlockPos end, final int range, final PathResult result, final EntityLivingBase entity)
     {
         final int minX = Math.min(start.getX(), end.getX()) - (range / 2);
         final int minZ = Math.min(start.getZ(), end.getZ()) - (range / 2);
@@ -161,6 +175,7 @@ public abstract class AbstractPathJob implements Callable<Path>
             debugNodesNotVisited = new HashSet<>();
             debugNodesPath = new HashSet<>();
         }
+        this.entity = entity;
     }
 
     private static boolean onLadderGoingUp(@NotNull final Node currentNode, @NotNull final BlockPos dPos)
@@ -358,9 +373,10 @@ public abstract class AbstractPathJob implements Callable<Path>
         {
             return search();
         }
-        catch (final RuntimeException e)
+        catch (final Exception e)
         {
-            Log.getLogger().debug(e);
+            // Log everything, so exceptions of the pathfinding-thread show in Log
+            Log.getLogger().warn("Pathfinding Exception", e);
         }
 
         return null;
@@ -388,6 +404,12 @@ public abstract class AbstractPathJob implements Callable<Path>
             final Node currentNode = nodesOpen.poll();
 
             totalNodesVisited++;
+
+            // Limiting max amount of nodes mapped
+            if (totalNodesVisited > MAX_NODES_VISITED)
+            {
+                break;
+            }
             currentNode.setCounterVisited(totalNodesVisited);
 
             handleDebugOptions(currentNode);
@@ -854,12 +876,18 @@ public abstract class AbstractPathJob implements Callable<Path>
             return -1;
         }
 
-        final BlockPos down = pos.down(2);
-        final IBlockState below = world.getBlockState(down);
-        if (isWalkableSurface(below, pos) == SurfaceType.WALKABLE)
+        for (int i = 2; i <= 4; i++)
         {
-            //  Level path
-            return pos.getY() - 1;
+            final IBlockState below = world.getBlockState(pos.down(i));
+            if (isWalkableSurface(below, pos) == SurfaceType.WALKABLE)
+            {
+                //  Level path
+                return pos.getY() - i + 1;
+            }
+            else if (below.getMaterial() != Material.AIR)
+            {
+                return -1;
+            }
         }
 
         return -1;
@@ -900,6 +928,13 @@ public abstract class AbstractPathJob implements Callable<Path>
 
         //  Check for jump room from the origin space
         if (!isPassable(parent.pos.up(2)))
+        {
+            return -1;
+        }
+
+        final IBlockState below = world.getBlockState(parent.pos.down());
+        final AxisAlignedBB bb = below.getCollisionBoundingBox(world, pos.down());
+        if (bb != null && bb.maxY < 1)
         {
             return -1;
         }
@@ -1000,7 +1035,7 @@ public abstract class AbstractPathJob implements Callable<Path>
      */
     protected boolean isLadder(@NotNull final Block block, final BlockPos pos)
     {
-        return block.isLadder(this.world.getBlockState(pos), world, pos, null);
+        return block.isLadder(this.world.getBlockState(pos), world, pos, entity);
     }
 
     protected boolean isLadder(final BlockPos pos)

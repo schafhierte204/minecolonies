@@ -3,21 +3,25 @@ package com.minecolonies.coremod.proxy;
 import com.minecolonies.api.util.constant.Constants;
 import com.minecolonies.coremod.MineColonies;
 import com.minecolonies.coremod.blocks.ModBlocks;
-import com.minecolonies.coremod.client.gui.WindowBuildTool;
 import com.minecolonies.coremod.colony.CitizenDataView;
 import com.minecolonies.coremod.entity.EntityCitizen;
 import com.minecolonies.coremod.entity.EntityFishHook;
 import com.minecolonies.coremod.entity.ai.mobs.barbarians.EntityArcherBarbarian;
 import com.minecolonies.coremod.entity.ai.mobs.barbarians.EntityBarbarian;
 import com.minecolonies.coremod.entity.ai.mobs.barbarians.EntityChiefBarbarian;
-import com.minecolonies.coremod.entity.ai.mobs.util.BarbarianSpawnUtils;
+import com.minecolonies.coremod.entity.ai.mobs.pirates.EntityArcherPirate;
+import com.minecolonies.coremod.entity.ai.mobs.pirates.EntityCaptainPirate;
+import com.minecolonies.coremod.entity.ai.mobs.pirates.EntityPirate;
 import com.minecolonies.coremod.inventory.GuiHandler;
 import com.minecolonies.coremod.items.ModItems;
 import com.minecolonies.coremod.tileentities.*;
+import com.minecolonies.coremod.util.TownHallRecipe;
+import com.ldtteam.structurize.client.gui.WindowBuildTool;
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.Item;
+import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.stats.RecipeBook;
 import net.minecraft.util.ResourceLocation;
@@ -48,10 +52,12 @@ import static com.minecolonies.api.util.constant.ColonyConstants.*;
 public class CommonProxy implements IProxy
 {
     /**
-     * feel free to change the following if you want different colored spawn eggs
+     * Spawn egg colors.
      */
-    private static final int PRIMARY_COLOR   = 5;
-    private static final int SECONDARY_COLOR = 700;
+    private static final int PRIMARY_COLOR_BARBARIAN   = 5;
+    private static final int SECONDARY_COLOR_BARBARIAN = 700;
+    private static final int PRIMARY_COLOR_PIRATE   = 7;
+    private static final int SECONDARY_COLOR_PIRATE = 600;
 
     /**
      * Used to store IExtendedEntityProperties data temporarily between player death and respawn.
@@ -96,6 +102,16 @@ public class CommonProxy implements IProxy
     }
 
     /**
+     * Called when registering recipes.
+     * @param event the registery event for recipes.
+     */
+    @SubscribeEvent
+    public static void registerRecipes(@NotNull final RegistryEvent.Register<IRecipe> event)
+    {
+        event.getRegistry().register(new TownHallRecipe());
+    }
+
+    /**
      * Called when registering items,
      * we have to register all our mod items here.
      *
@@ -117,13 +133,12 @@ public class CommonProxy implements IProxy
     @Override
     public void registerTileEntities()
     {
-        GameRegistry.registerTileEntity(TileEntityColonyBuilding.class, Constants.MOD_ID + ".ColonyBuilding");
-        GameRegistry.registerTileEntity(ScarecrowTileEntity.class, Constants.MOD_ID + ".Scarecrow");
-        GameRegistry.registerTileEntity(TileEntityWareHouse.class, Constants.MOD_ID + ".WareHouse");
-        GameRegistry.registerTileEntity(TileEntityRack.class, Constants.MOD_ID + ".rack");
-        GameRegistry.registerTileEntity(TileEntityInfoPoster.class, Constants.MOD_ID + ".InfoPoster");
-        GameRegistry.registerTileEntity(TileEntityMultiBlock.class, Constants.MOD_ID + ".MultiBlock");
-        GameRegistry.registerTileEntity(TileEntityBarrel.class, Constants.MOD_ID + ".Barrel");
+        GameRegistry.registerTileEntity(TileEntityColonyBuilding.class, new ResourceLocation(Constants.MOD_ID, "colonybuilding"));
+        GameRegistry.registerTileEntity(ScarecrowTileEntity.class, new ResourceLocation(Constants.MOD_ID, "scarecrow"));
+        GameRegistry.registerTileEntity(TileEntityWareHouse.class, new ResourceLocation(Constants.MOD_ID, "warehouse"));
+        GameRegistry.registerTileEntity(TileEntityRack.class, new ResourceLocation(Constants.MOD_ID, "rack"));
+        GameRegistry.registerTileEntity(TileEntityInfoPoster.class, new ResourceLocation(Constants.MOD_ID, "infoposter"));
+        GameRegistry.registerTileEntity(TileEntityBarrel.class, new ResourceLocation(Constants.MOD_ID, "barrel"));
 
         NetworkRegistry.INSTANCE.registerGuiHandler(MineColonies.instance, new GuiHandler());
     }
@@ -191,15 +206,50 @@ public class CommonProxy implements IProxy
           Constants.ENTITY_UPDATE_FREQUENCY,
           true);
 
+        EntityRegistry.registerModEntity(PIRATE,
+          EntityPirate.class,
+          "Pirate",
+          getNextEntityId(),
+          MineColonies.instance,
+          Constants.ENTITY_TRACKING_RANGE,
+          Constants.ENTITY_UPDATE_FREQUENCY,
+          true);
+        EntityRegistry.registerModEntity(PIRATE_ARCHER,
+          EntityArcherPirate.class,
+          "ArcherPirate",
+          getNextEntityId(),
+          MineColonies.instance,
+          Constants.ENTITY_TRACKING_RANGE,
+          Constants.ENTITY_UPDATE_FREQUENCY,
+          true);
+        EntityRegistry.registerModEntity(PIRATE_CHIEF,
+          EntityCaptainPirate.class,
+          "ChiefPirate",
+          getNextEntityId(),
+          MineColonies.instance,
+          Constants.ENTITY_TRACKING_RANGE,
+          Constants.ENTITY_UPDATE_FREQUENCY,
+          true);
+
         //Register Barbarian loot tables.
-        LootTableList.register(BarbarianSpawnUtils.BarbarianLootTable);
-        LootTableList.register(BarbarianSpawnUtils.ArcherLootTable);
-        LootTableList.register(BarbarianSpawnUtils.ChiefLootTable);
+        LootTableList.register(EntityBarbarian.LOOT_TABLE);
+        LootTableList.register(EntityArcherBarbarian.LOOT_TABLE);
+        LootTableList.register(EntityChiefBarbarian.LOOT_TABLE);
+
+        //Register Pirate loot tables.
+        LootTableList.register(EntityPirate.LOOT_TABLE);
+        LootTableList.register(EntityArcherPirate.LOOT_TABLE);
+        LootTableList.register(EntityCaptainPirate.LOOT_TABLE);
 
         //Register Barbarian spawn eggs
-        EntityRegistry.registerEgg(BARBARIAN, PRIMARY_COLOR, SECONDARY_COLOR);
-        EntityRegistry.registerEgg(ARCHER, PRIMARY_COLOR, SECONDARY_COLOR);
-        EntityRegistry.registerEgg(CHIEF, PRIMARY_COLOR, SECONDARY_COLOR);
+        EntityRegistry.registerEgg(BARBARIAN, PRIMARY_COLOR_BARBARIAN, SECONDARY_COLOR_BARBARIAN);
+        EntityRegistry.registerEgg(ARCHER, PRIMARY_COLOR_BARBARIAN, SECONDARY_COLOR_BARBARIAN);
+        EntityRegistry.registerEgg(CHIEF, PRIMARY_COLOR_BARBARIAN, SECONDARY_COLOR_BARBARIAN);
+
+        //Register Pirate spawn eggs
+        EntityRegistry.registerEgg(PIRATE, PRIMARY_COLOR_PIRATE, SECONDARY_COLOR_PIRATE);
+        EntityRegistry.registerEgg(PIRATE_ARCHER, PRIMARY_COLOR_PIRATE, SECONDARY_COLOR_PIRATE);
+        EntityRegistry.registerEgg(PIRATE_CHIEF, PRIMARY_COLOR_PIRATE, SECONDARY_COLOR_PIRATE);
     }
 
     @Override
@@ -228,22 +278,6 @@ public class CommonProxy implements IProxy
 
     @Override
     public void openBuildToolWindow(final BlockPos pos)
-    {
-        /*
-         * Intentionally left empty.
-         */
-    }
-
-    @Override
-    public void openScanToolWindow(final BlockPos pos1, final BlockPos pos2)
-    {
-        /*
-         * Intentionally left empty.
-         */
-    }
-
-    @Override
-    public void openMultiBlockWindow(final BlockPos pos)
     {
         /*
          * Intentionally left empty.

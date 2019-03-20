@@ -2,6 +2,7 @@ package com.minecolonies.coremod.blocks.decorative;
 
 import com.minecolonies.api.util.constant.Constants;
 import com.minecolonies.coremod.blocks.AbstractBlockMinecolonies;
+import com.minecolonies.coremod.blocks.AbstractBlockMinecoloniesFalling;
 import com.minecolonies.coremod.creativetab.ModCreativeTabs;
 import net.minecraft.block.BlockHorizontal;
 import net.minecraft.block.material.MapColor;
@@ -35,7 +36,7 @@ import static net.minecraft.util.EnumFacing.*;
  * This block is used as a border to show the size of the building.
  * It also shows that the building is in the progress of being built.
  */
-public class BlockConstructionTape extends AbstractBlockMinecolonies<BlockConstructionTape>
+public class BlockConstructionTape extends AbstractBlockMinecoloniesFalling<BlockConstructionTape>
 {
     /**
      * The variants of the shingle slab.
@@ -212,7 +213,7 @@ public class BlockConstructionTape extends AbstractBlockMinecolonies<BlockConstr
      */
     private void initBlock()
     {
-        setRegistryName(BLOCK_NAME);
+        setRegistryName(Constants.MOD_ID.toLowerCase() + ":" + BLOCK_NAME);
         setTranslationKey(String.format("%s.%s", Constants.MOD_ID.toLowerCase(Locale.ENGLISH), BLOCK_NAME));
         setCreativeTab(ModCreativeTabs.MINECOLONIES);
         this.setDefaultState(this.blockState.getBaseState().withProperty(FACING, NORTH));

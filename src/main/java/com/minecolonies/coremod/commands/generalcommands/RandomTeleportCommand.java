@@ -123,8 +123,6 @@ public class RandomTeleportCommand extends AbstractSingleCommand implements IAct
             return;
         }
         teleportPlayer(sender, playerToTeleport);
-        //.fallDistance is used to cancel out fall damage  basically if you have -5 it will reduce fall damage by 2.5 hearts
-        playerToTeleport.fallDistance = FALL_DISTANCE;
     }
 
     /**
@@ -168,7 +166,7 @@ public class RandomTeleportCommand extends AbstractSingleCommand implements IAct
                 continue;
             }
 
-            final boolean foundPosition = BlockPosUtil.isPositionSafe(sender, groundPosition);
+            final boolean foundPosition = BlockPosUtil.isPositionSafe(sender.getEntityWorld(), groundPosition.down());
 
             if (foundPosition)
             {
@@ -178,6 +176,9 @@ public class RandomTeleportCommand extends AbstractSingleCommand implements IAct
                     playerToTeleport.setHealth(playerToTeleport.getMaxHealth());
                     playerToTeleport.setPositionAndUpdate(groundPosition.getX(), groundPosition.getY() + SAFETY_DROP, groundPosition.getZ());
                     playerToTeleport.setHealth(playerToTeleport.getMaxHealth());
+
+                    //.fallDistance is used to cancel out fall damage  basically if you have -5 it will reduce fall damage by 2.5 hearts
+                    playerToTeleport.fallDistance = -FALL_DISTANCE;
                 }
                 else
                 {

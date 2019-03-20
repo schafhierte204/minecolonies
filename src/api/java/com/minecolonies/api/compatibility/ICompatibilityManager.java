@@ -4,9 +4,12 @@ import com.minecolonies.api.crafting.ItemStorage;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.Tuple;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Interface for all compatabilityManagers.
@@ -14,6 +17,26 @@ import java.util.List;
  */
 public interface ICompatibilityManager
 {
+    /**
+     * Getter for the different meshes the sifter is allowed to use.
+     * @return a copy of the list of tuples containing the itemStorage and the chance of it breaking.
+     */
+    List<Tuple<ItemStorage, Double>> getMeshes();
+
+    /**
+     * Getter for the blocks which can be sieved.
+     * @return a copy of the list of itemStorages.
+     */
+    ArrayList<ItemStorage> getSievableBlock();
+
+    /**
+     * Get a random item return for a certain mesh and certain block which is in the sieve.
+     * @param mesh the used mesh.
+     * @param block the used block.
+     * @return the ItemStack.
+     */
+    ItemStack getRandomSieveResultForMeshAndBlock(ItemStorage mesh, ItemStorage block);
+
     /**
      * Method called to instantiate the requirements.
      */
@@ -24,14 +47,14 @@ public interface ICompatibilityManager
      * @param stack the sapling.
      * @return the leave block.
      */
-    IBlockState getLeaveForSapling(final ItemStack stack);
+    IBlockState getLeafForSapling(final ItemStack stack);
 
     /**
      * Gets the sapling matching a leave.
      * @param block the leave.
      * @return the sapling stack.
      */
-    ItemStack getSaplingForLeave(final IBlockState block);
+    ItemStack getSaplingForLeaf(final IBlockState block);
 
     /**
      * Get a copy of the list of saplings.
@@ -67,6 +90,12 @@ public interface ICompatibilityManager
     boolean isCompost(ItemStack stack);
 
     /**
+     * Get a map of all the crusher modes.
+     * @return the modes.
+     */
+    Map<ItemStorage, ItemStorage> getCrusherModes();
+
+    /**
      * Write colonies to NBT data for saving.
      *
      * @param compound NBT-Tag.
@@ -85,11 +114,24 @@ public interface ICompatibilityManager
      * @param block the block to connect the sapling to.
      * @param stack the sapling.
      */
-    void connectLeaveToSapling(IBlockState block, ItemStack stack);
+    void connectLeafToSapling(IBlockState block, ItemStack stack);
 
     /**
      * If discovery process ran already.
      * @return true if so.
      */
     boolean isDiscoveredAlready();
+
+    /**
+     * If an itemStack is a lucky block which can result in an extra ore drop.
+     * @param itemStack the stack to check.
+     * @return true if so.
+     */
+    boolean isLuckyBlock(final ItemStack itemStack);
+
+    /**
+     * Get a random lucky ore from a luckyblock.
+     * @return the lucky ore.
+     */
+    ItemStack getRandomLuckyOre();
 }
