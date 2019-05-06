@@ -11,7 +11,7 @@ import com.minecolonies.coremod.entity.EntityFishHook;
 import com.minecolonies.coremod.entity.ai.basic.AbstractEntityAISkill;
 import com.minecolonies.coremod.entity.ai.statemachine.AITarget;
 import com.minecolonies.coremod.entity.ai.statemachine.states.IAIState;
-import com.minecolonies.coremod.entity.pathfinding.PathJobFindWater;
+import com.minecolonies.coremod.entity.pathfinding_old.PathJobFindWater;
 import com.minecolonies.coremod.sounds.FishermanSounds;
 import com.minecolonies.coremod.util.SoundUtils;
 import com.minecolonies.coremod.util.WorkerUtil;

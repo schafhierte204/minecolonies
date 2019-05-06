@@ -1,4 +1,4 @@
-package com.minecolonies.coremod.entity.pathfinding;
+package com.minecolonies.coremod.entity.pathfinding_old;
 
 import com.minecolonies.api.configuration.Configurations;
 import com.minecolonies.api.util.BlockPosUtil;

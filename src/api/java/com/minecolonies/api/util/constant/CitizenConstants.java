@@ -89,7 +89,7 @@ public final class CitizenConstants
      */
     public static final double BASE_MAX_HEALTH            = 20D;
     /**
-     * Base pathfinding range of the citizen.
+     * Base pathfinding_old range of the citizen.
      */
     public static final int    BASE_PATHFINDING_RANGE     = 100;
     /**

@@ -1,4 +1,4 @@
-package com.minecolonies.coremod.entity.pathfinding;
+package com.minecolonies.coremod.entity.pathfinding_old;
 
 import net.minecraft.pathfinding.PathPoint;
 import net.minecraft.util.EnumFacing;

@@ -10,7 +10,7 @@ import com.minecolonies.coremod.entity.ai.statemachine.AITarget;
 import com.minecolonies.coremod.entity.ai.statemachine.states.AIBlockingEventType;
 import com.minecolonies.coremod.entity.ai.statemachine.states.IAIState;
 import com.minecolonies.coremod.entity.ai.statemachine.tickratestatemachine.TickRateStateMachine;
-import com.minecolonies.coremod.entity.pathfinding.PathResult;
+import com.minecolonies.coremod.entity.pathfinding_old.PathResult;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityAgeable;
 import net.minecraft.entity.ai.EntityAIBase;

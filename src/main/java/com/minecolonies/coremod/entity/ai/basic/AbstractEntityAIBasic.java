@@ -23,7 +23,7 @@ import com.minecolonies.coremod.entity.ai.statemachine.AIEventTarget;
 import com.minecolonies.coremod.entity.ai.statemachine.AITarget;
 import com.minecolonies.coremod.entity.ai.statemachine.states.AIBlockingEventType;
 import com.minecolonies.coremod.entity.ai.statemachine.states.IAIState;
-import com.minecolonies.coremod.entity.pathfinding.EntityCitizenWalkToProxy;
+import com.minecolonies.coremod.entity.pathfinding_old.EntityCitizenWalkToProxy;
 import com.minecolonies.coremod.inventory.InventoryCitizen;
 import com.minecolonies.coremod.util.WorkerUtil;
 import net.minecraft.block.Block;

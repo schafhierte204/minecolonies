@@ -1,4 +1,4 @@
-package com.minecolonies.coremod.entity.pathfinding;
+package com.minecolonies.coremod.entity.pathfinding_old;
 
 import com.minecolonies.coremod.entity.ai.citizen.fisherman.Pond;
 import net.minecraft.entity.EntityLivingBase;

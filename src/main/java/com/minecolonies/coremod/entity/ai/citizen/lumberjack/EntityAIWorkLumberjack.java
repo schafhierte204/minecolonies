@@ -9,7 +9,7 @@ import com.minecolonies.coremod.colony.jobs.JobLumberjack;
 import com.minecolonies.coremod.entity.ai.basic.AbstractEntityAIInteract;
 import com.minecolonies.coremod.entity.ai.statemachine.AITarget;
 import com.minecolonies.coremod.entity.ai.statemachine.states.IAIState;
-import com.minecolonies.coremod.entity.pathfinding.PathJobFindTree;
+import com.minecolonies.coremod.entity.pathfinding_old.PathJobFindTree;
 import com.minecolonies.coremod.util.WorkerUtil;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockSapling;
@@ -159,7 +159,7 @@ public class EntityAIWorkLumberjack extends AbstractEntityAIInteract<JobLumberja
     private boolean checkedInHut = false;
 
     /**
-     * The active pathfinding job used to walk to trees.
+     * The active pathfinding_old job used to walk to trees.
      */
     @Nullable
     private PathJobFindTree.TreePathResult pathResult;

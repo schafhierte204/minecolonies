@@ -1,4 +1,4 @@
-package com.minecolonies.coremod.entity.pathfinding;
+package com.minecolonies.coremod.entity.pathfinding_old;
 
 import com.minecolonies.api.entity.ai.pathfinding.AbstractWalkToProxy;
 import com.minecolonies.coremod.colony.Colony;

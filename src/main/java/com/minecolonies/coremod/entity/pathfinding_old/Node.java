@@ -1,11 +1,11 @@
-package com.minecolonies.coremod.entity.pathfinding;
+package com.minecolonies.coremod.entity.pathfinding_old;
 
 import net.minecraft.util.math.BlockPos;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Nodes used in pathfinding.
+ * Nodes used in pathfinding_old.
  */
 public class Node implements Comparable<Node>
 {

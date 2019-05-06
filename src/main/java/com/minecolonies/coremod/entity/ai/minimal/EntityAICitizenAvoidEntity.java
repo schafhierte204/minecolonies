@@ -4,7 +4,7 @@ import com.minecolonies.api.util.CompatibilityUtils;
 import com.minecolonies.coremod.colony.jobs.AbstractJobGuard;
 import com.minecolonies.coremod.entity.EntityCitizen;
 import com.minecolonies.coremod.entity.ai.mobs.AbstractEntityMinecoloniesMob;
-import com.minecolonies.coremod.entity.pathfinding.PathResult;
+import com.minecolonies.coremod.entity.pathfinding_old.PathResult;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.ai.EntityAIBase;
 import net.minecraft.entity.player.EntityPlayer;

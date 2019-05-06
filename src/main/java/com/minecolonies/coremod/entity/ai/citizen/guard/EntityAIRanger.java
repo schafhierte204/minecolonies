@@ -7,7 +7,7 @@ import com.minecolonies.api.util.constant.ToolType;
 import com.minecolonies.coremod.colony.jobs.JobRanger;
 import com.minecolonies.coremod.entity.ai.statemachine.AITarget;
 import com.minecolonies.coremod.entity.ai.statemachine.states.IAIState;
-import com.minecolonies.coremod.entity.pathfinding.PathResult;
+import com.minecolonies.coremod.entity.pathfinding_old.PathResult;
 import com.minecolonies.coremod.util.SoundUtils;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.EntityLivingBase;
@@ -58,7 +58,7 @@ public class EntityAIRanger extends AbstractEntityAIGuard<JobRanger>
     private int tooCloseNumTicks = 0;
 
     /**
-     * Boolean for fleeing pathfinding
+     * Boolean for fleeing pathfinding_old
      */
     private boolean fleeing = false;
 

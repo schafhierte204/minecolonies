@@ -1,4 +1,4 @@
-package com.minecolonies.coremod.entity.pathfinding;
+package com.minecolonies.coremod.entity.pathfinding_old;
 
 import com.minecolonies.api.configuration.Configurations;
 import com.minecolonies.api.util.Log;
@@ -48,7 +48,7 @@ public final class Pathfinding
     }
 
     /**
-     * Render debugging information for the pathfinding system.
+     * Render debugging information for the pathfinding_old system.
      *
      * @param frame entity movement weight.
      */

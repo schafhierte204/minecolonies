@@ -13,7 +13,7 @@ public class Configurations
     @Config.Comment("All configuration related to mod compatibility")
     public static Compatibility compatibility = new Compatibility();
 
-    @Config.Comment("All configurations related to pathfinding")
+    @Config.Comment("All configurations related to pathfinding_old")
     public static Pathfinding pathfinding = new Pathfinding();
 
     @Config.Comment("All configurations related to the request system")
@@ -307,16 +307,16 @@ public class Configurations
 
     public static class Pathfinding
     {
-        @Config.Comment("Draw pathfinding paths (might be laggy)")
+        @Config.Comment("Draw pathfinding_old paths (might be laggy)")
         public boolean pathfindingDebugDraw = false;
 
-        @Config.Comment("Verbosity of pathfinding")
+        @Config.Comment("Verbosity of pathfinding_old")
         public int pathfindingDebugVerbosity = 0;
 
-        @Config.Comment("Amount of additional threads to be used for pathfinding")
+        @Config.Comment("Amount of additional threads to be used for pathfinding_old")
         public int pathfindingMaxThreadCount = 2;
 
-        @Config.Comment("Max amount of Nodes(positions) to map during pathfinding. Default 5000: Lowering increases performance, but might lead to pathing glitches")
+        @Config.Comment("Max amount of Nodes(positions) to map during pathfinding_old. Default 5000: Lowering increases performance, but might lead to pathing glitches")
         public int pathfindingMaxNodes = 5000;
     }
 

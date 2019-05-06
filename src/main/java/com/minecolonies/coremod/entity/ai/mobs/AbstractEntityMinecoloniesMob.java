@@ -6,7 +6,7 @@ import com.minecolonies.coremod.colony.Colony;
 import com.minecolonies.coremod.colony.ColonyManager;
 import com.minecolonies.coremod.entity.ai.mobs.util.BarbarianUtils;
 import com.minecolonies.coremod.entity.ai.mobs.util.MobSpawnUtils;
-import com.minecolonies.coremod.entity.pathfinding.PathNavigate;
+import com.minecolonies.coremod.entity.pathfinding_old.PathNavigate;
 import com.minecolonies.coremod.items.ItemChiefSword;
 import com.minecolonies.coremod.sounds.BarbarianSounds;
 import net.minecraft.entity.Entity;

@@ -1,4 +1,4 @@
-package com.minecolonies.coremod.entity.pathfinding;
+package com.minecolonies.coremod.entity.pathfinding_old;
 
 import com.minecolonies.api.configuration.Configurations;
 import com.minecolonies.api.util.BlockPosUtil;
@@ -185,11 +185,11 @@ public abstract class AbstractPathJob implements Callable<Path>
 
     /**
      * Generates a good path starting location for the entity to path from, correcting for the following conditions.
-     * - Being in water: pathfinding in water occurs along the surface; adjusts position to surface.
+     * - Being in water: pathfinding_old in water occurs along the surface; adjusts position to surface.
      * - Being in a fence space: finds correct adjacent position which is not a fence space, to prevent starting path.
      * from within the fence block.
      *
-     * @param entity Entity for the pathfinding operation.
+     * @param entity Entity for the pathfinding_old operation.
      * @return ChunkCoordinates for starting location.
      */
     public static BlockPos prepareStart(@NotNull final EntityLiving entity)
@@ -375,7 +375,7 @@ public abstract class AbstractPathJob implements Callable<Path>
         }
         catch (final Exception e)
         {
-            // Log everything, so exceptions of the pathfinding-thread show in Log
+            // Log everything, so exceptions of the pathfinding_old-thread show in Log
             Log.getLogger().warn("Pathfinding Exception", e);
         }
 

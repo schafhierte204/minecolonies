@@ -6,7 +6,6 @@ import com.ldtteam.structurize.util.PlacementSettings;
 import com.minecolonies.api.colony.permissions.Action;
 import com.minecolonies.api.configuration.Configurations;
 import com.minecolonies.api.util.BlockPosUtil;
-import com.minecolonies.api.util.BlockUtils;
 import com.minecolonies.api.util.constant.Constants;
 import com.minecolonies.coremod.colony.CitizenDataView;
 import com.minecolonies.coremod.colony.ColonyManager;
@@ -15,7 +14,7 @@ import com.minecolonies.coremod.colony.buildings.AbstractBuildingGuards;
 import com.minecolonies.coremod.colony.buildings.views.AbstractBuildingView;
 import com.minecolonies.coremod.entity.EntityCitizen;
 import com.minecolonies.coremod.entity.ai.basic.AbstractEntityAIStructure;
-import com.minecolonies.coremod.entity.pathfinding.Pathfinding;
+import com.minecolonies.coremod.entity.pathfinding_old.Pathfinding;
 import com.minecolonies.coremod.items.ModItems;
 import com.ldtteam.structures.helpers.Settings;
 import com.ldtteam.structures.helpers.Structure;
@@ -27,7 +26,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.gen.structure.template.Template;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import org.jetbrains.annotations.NotNull;
@@ -91,7 +89,7 @@ public class ClientEventHandler
     private ColonyView view = null;
 
     /**
-     * Used to catch the renderWorldLastEvent in order to draw the debug nodes for pathfinding.
+     * Used to catch the renderWorldLastEvent in order to draw the debug nodes for pathfinding_old.
      *
      * @param event the catched event.
      */
