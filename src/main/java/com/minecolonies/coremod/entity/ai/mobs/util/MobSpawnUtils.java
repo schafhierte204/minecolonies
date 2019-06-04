@@ -62,7 +62,7 @@ public final class MobSpawnUtils
 
         final double attackDamage = Configurations.gameplay.barbarianHordeDifficulty >= 10 ? ATTACK_DAMAGE * 2 : ATTACK_DAMAGE;
         mob.getEntityAttribute(SharedMonsterAttributes.ATTACK_DAMAGE).setBaseValue(attackDamage);
-        if(mob instanceof EntityChiefBarbarian || mob instanceof EntityCaptainPirate)
+        if(mob instanceof EntityChiefBarbarian)
         {
             final double chiefArmor = Configurations.gameplay.barbarianHordeDifficulty > 5 ? CHIEF_ARMOR * 2 : CHIEF_ARMOR;
             mob.getEntityAttribute(SharedMonsterAttributes.ARMOR).setBaseValue(chiefArmor);
@@ -116,13 +116,18 @@ public final class MobSpawnUtils
 
     /**
      * Sets up and spawns the Barbarian entities of choice
-     *
-     * @param entityToSpawn  The entity which should be spawned
+     *  @param entityToSpawn  The entity which should be spawned
      * @param numberOfSpawns The number of times the entity should be spawned
      * @param spawnLocation  the location at which to spawn the entity
      * @param world          the world in which the colony and entity are
+     * @param colony the colony to spawn them close to.
      */
-    public static void spawn(final ResourceLocation entityToSpawn, final int numberOfSpawns, final BlockPos spawnLocation, final World world)
+    public static void spawn(
+      final ResourceLocation entityToSpawn,
+      final int numberOfSpawns,
+      final BlockPos spawnLocation,
+      final World world,
+      final Colony colony)
     {
         if (spawnLocation != null && entityToSpawn != null && world != null)
         {
@@ -140,6 +145,7 @@ public final class MobSpawnUtils
                     setEquipment(entity);
                     entity.setPositionAndRotation(x, y + 1.0, z, (float) MathHelper.wrapDegrees(world.rand.nextDouble() * WHOLE_CIRCLE), 0.0F);
                     CompatibilityUtils.spawnEntity(world, entity);
+                    entity.setColony(colony);
                 }
             });
         }

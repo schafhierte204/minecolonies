@@ -10,6 +10,8 @@ import com.minecolonies.api.configuration.Configurations;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.util.*;
 import com.minecolonies.api.util.constant.TypeConstants;
+import com.minecolonies.coremod.blocks.BlockDecorationController;
+import com.minecolonies.coremod.blocks.ModBlocks;
 import com.minecolonies.coremod.colony.buildings.AbstractBuildingStructureBuilder;
 import com.minecolonies.coremod.colony.jobs.AbstractJobStructure;
 import com.minecolonies.coremod.entity.EntityCitizen;
@@ -30,6 +32,7 @@ import net.minecraft.entity.item.EntityItemFrame;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.inventory.EntityEquipmentSlot;
+import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.Mirror;
@@ -43,6 +46,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static com.minecolonies.api.util.constant.Suppression.MULTIPLE_LOOPS_OVER_THE_SAME_SET_SHOULD_BE_COMBINED;
 import static com.minecolonies.coremod.entity.ai.statemachine.states.AIWorkerState.*;
@@ -450,7 +454,7 @@ public abstract class AbstractEntityAIStructure<J extends AbstractJobStructure> 
                     world.setBlockToAir(coords);
                 }
 
-                final Object result = handlers.handle(world, coords, blockState, job.getStructure().getTileEntityData(job.getStructure().getLocalPosition()), false, job.getStructure().getPosition());
+                final Object result = handlers.handle(world, coords, blockState, job.getStructure().getTileEntityData(job.getStructure().getLocalPosition()), false, job.getStructure().getPosition(), job.getStructure().getSettings());
                 if (result instanceof IPlacementHandler.ActionProcessingResult)
                 {
                     if (result == IPlacementHandler.ActionProcessingResult.ACCEPT)
@@ -526,6 +530,7 @@ public abstract class AbstractEntityAIStructure<J extends AbstractJobStructure> 
         {
             itemList.removeIf(itemStack -> ItemStackUtils.isEmpty(itemStack) || foundStacks.stream().anyMatch(target -> target.isItemEqual(itemStack)));
         }
+        itemList.removeIf(itemstack -> itemstack.getItem() instanceof ItemBlock && isBlockFree(((ItemBlock) itemstack.getItem()).getBlock(), itemstack.getMetadata()));
 
         final Map<ItemStorage, Integer> list = new HashMap<>();
         for (final ItemStack stack : itemList)
@@ -682,7 +687,8 @@ public abstract class AbstractEntityAIStructure<J extends AbstractJobStructure> 
                  || BlockUtils.isWater(block.getDefaultState())
                  || block.equals(Blocks.LEAVES)
                  || block.equals(Blocks.LEAVES2)
-                 || (block.equals(Blocks.DOUBLE_PLANT) && Utils.testFlag(metadata, 0x08));
+                 || (block.equals(Blocks.DOUBLE_PLANT) && Utils.testFlag(metadata, 0x08))
+                 || block == ModBlocks.blockDecorationPlacerholder;
     }
 
     /*
@@ -814,6 +820,8 @@ public abstract class AbstractEntityAIStructure<J extends AbstractJobStructure> 
         {
             job.getStructure().rotate(BlockPosUtil.getRotationFromRotations(rotateTimes), world, position, isMirrored ? Mirror.FRONT_BACK : Mirror.NONE);
             job.getStructure().setPosition(position);
+            job.getStructure().setPlacementSettings(new PlacementSettings(isMirrored ? Mirror.FRONT_BACK : Mirror.NONE, BlockPosUtil.getRotationFromRotations(rotateTimes)));
+
         }
         catch (final NullPointerException ex)
         {
@@ -1016,66 +1024,70 @@ public abstract class AbstractEntityAIStructure<J extends AbstractJobStructure> 
 
             final Entity entity = ItemStackUtils.getEntityFromEntityInfoOrNull(entityInfo, world);
             final BlockPos pos = currentStructure.getPos();
-            final Vec3d worldPos = entity.getPositionVector().add(pos.getX(), pos.getY(), pos.getZ());
-
-            if (entity != null && !EntityUtils.isEntityAtPosition(entity, world, worker))
+            if (entity != null)
             {
-                final List<ItemStack> request = new ArrayList<>();
-
-                if (entity instanceof EntityItemFrame)
-                {
-                    final ItemStack stack = ((EntityItemFrame) entity).getDisplayedItem();
-                    if (!ItemStackUtils.isEmpty(stack))
-                    {
-                        ItemStackUtils.setSize(stack, 1);
-                        request.add(stack);
-                    }
-                    request.add(new ItemStack(Items.ITEM_FRAME, 1));
-                }
-                else if (entity instanceof EntityArmorStand)
-                {
-                    request.add(entity.getPickedResult(new RayTraceResult(worker)));
-                    entity.getArmorInventoryList().forEach(request::add);
-                    entity.getHeldEquipment().forEach(request::add);
-                }
-                else
-                {
-                    request.add(entity.getPickedResult(new RayTraceResult(worker)));
-                }
-
-                if (!Configurations.gameplay.builderInfiniteResources)
-                {
-                    if (checkForListInInvAndRequest(this, new ArrayList<>(request), true))
-                    {
-                        return false;
-                    }
-
-                    //Surpress
-                    for (final ItemStack stack : request)
-                    {
-                        if (ItemStackUtils.isEmpty(stack))
-                        {
-                            continue;
-                        }
-                        final int slot = worker.getCitizenInventoryHandler().findFirstSlotInInventoryWith(stack.getItem(), stack.getItemDamage());
-                        if (slot != -1)
-                        {
-                            new InvWrapper(getInventory()).extractItem(slot, 1, false);
-                            reduceNeededResources(stack);
-                        }
-                    }
-                }
-
-                entity.setUniqueId(UUID.randomUUID());
+                final Vec3d worldPos = entity.getPositionVector().add(pos.getX(), pos.getY(), pos.getZ());
                 entity.setLocationAndAngles(
                   worldPos.x,
                   worldPos.y,
                   worldPos.z,
                   entity.rotationYaw,
                   entity.rotationPitch);
-                if (!world.spawnEntity(entity))
+
+                if (!EntityUtils.isEntityAtPosition(entity, world, worker))
                 {
-                    Log.getLogger().info("Failed to spawn entity");
+                    final List<ItemStack> request = new ArrayList<>();
+                    if (entity instanceof EntityItemFrame)
+                    {
+                        final ItemStack stack = ((EntityItemFrame) entity).getDisplayedItem();
+                        if (!ItemStackUtils.isEmpty(stack))
+                        {
+                            ItemStackUtils.setSize(stack, 1);
+                            request.add(stack);
+                        }
+                        request.add(new ItemStack(Items.ITEM_FRAME, 1));
+                    }
+                    else if (entity instanceof EntityArmorStand)
+                    {
+                        request.add(entity.getPickedResult(new RayTraceResult(worker)));
+                        entity.getArmorInventoryList().forEach(request::add);
+                        entity.getHeldEquipment().forEach(request::add);
+                    }
+                    else
+                    {
+                        request.add(entity.getPickedResult(new RayTraceResult(worker)));
+                    }
+
+                    request.removeIf(ItemStackUtils::isEmpty);
+
+                    if (!Configurations.gameplay.builderInfiniteResources)
+                    {
+                        if (checkForListInInvAndRequest(this, new ArrayList<>(request), true))
+                        {
+                            return false;
+                        }
+
+                        //Surpress
+                        for (final ItemStack stack : request)
+                        {
+                            if (ItemStackUtils.isEmpty(stack))
+                            {
+                                continue;
+                            }
+                            final int slot = worker.getCitizenInventoryHandler().findFirstSlotInInventoryWith(stack.getItem(), stack.getItemDamage());
+                            if (slot != -1)
+                            {
+                                new InvWrapper(getInventory()).extractItem(slot, 1, false);
+                                reduceNeededResources(stack);
+                            }
+                        }
+                    }
+
+                    entity.setUniqueId(UUID.randomUUID());
+                    if (!world.spawnEntity(entity))
+                    {
+                        Log.getLogger().info("Failed to spawn entity");
+                    }
                 }
             }
         }

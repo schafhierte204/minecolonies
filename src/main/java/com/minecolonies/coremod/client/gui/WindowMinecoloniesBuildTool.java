@@ -1,8 +1,11 @@
 package com.minecolonies.coremod.client.gui;
 
+import com.ldtteam.structures.lib.BlueprintUtils;
 import com.ldtteam.structurize.util.BlockUtils;
 import com.minecolonies.api.util.constant.TranslationConstants;
 import com.minecolonies.coremod.MineColonies;
+import com.minecolonies.coremod.colony.ColonyManager;
+import com.minecolonies.coremod.colony.ColonyView;
 import com.minecolonies.coremod.items.ItemSupplyCampDeployer;
 import com.minecolonies.coremod.items.ItemSupplyChestDeployer;
 import com.minecolonies.coremod.network.messages.BuildToolPasteMessage;
@@ -12,6 +15,7 @@ import com.ldtteam.structurize.client.gui.WindowBuildTool;
 import com.ldtteam.structurize.management.StructureName;
 import com.ldtteam.structurize.placementhandlers.PlacementError;
 import com.ldtteam.structures.helpers.Settings;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.util.math.BlockPos;
@@ -55,13 +59,16 @@ public class WindowMinecoloniesBuildTool extends WindowBuildTool
     @Override
     public void place(final StructureName structureName)
     {
+        final BlockPos offset = BlueprintUtils.getPrimaryBlockOffset(Settings.instance.getActiveStructure().getBluePrint());;
+        final IBlockState state  = Settings.instance.getActiveStructure().getBlockState(offset);
         MineColonies.getNetwork().sendToServer(new BuildToolPlaceMessage(
           structureName.toString(),
           structureName.toString(),
           Settings.instance.getPosition(),
           Settings.instance.getRotation(),
           structureName.isHut(),
-          Settings.instance.getMirror()));
+          Settings.instance.getMirror(),
+          state));
     }
 
     @Override
@@ -79,6 +86,8 @@ public class WindowMinecoloniesBuildTool extends WindowBuildTool
     @Override
     public void paste(final StructureName name, final boolean complete)
     {
+        final BlockPos offset = BlueprintUtils.getPrimaryBlockOffset(Settings.instance.getActiveStructure().getBluePrint());;
+        final IBlockState state  = Settings.instance.getActiveStructure().getBlockState(offset);
         MineColonies.getNetwork().sendToServer(new BuildToolPasteMessage(
           name.toString(),
           name.toString(),
@@ -86,7 +95,8 @@ public class WindowMinecoloniesBuildTool extends WindowBuildTool
           Settings.instance.getRotation(),
           name.isHut(),
           Settings.instance.getMirror(),
-          complete, Settings.instance.getFreeMode()));
+          complete, Settings.instance.getFreeMode(),
+          state));
     }
 
     @Override

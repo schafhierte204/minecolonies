@@ -1,5 +1,7 @@
 package com.minecolonies.api.util.constant;
 
+import net.minecraft.nbt.NBTTagCompound;
+
 /**
  * Some constants needed to store things to NBT.
  */
@@ -11,6 +13,9 @@ public final class NbtTagConstants
     public static final String TAG_CENTER                 = "center";
     public static final String TAG_MAX_CITIZENS           = "maxCitizens";
     public static final String TAG_BUILDINGS              = "buildings";
+    public static final String TAG_BUILDING               = "building";
+    public static final String TAG_BUILDINGS_CLAIM        = "buildingsClaim";
+    public static final String TAG_BUILDINGS_UNCLAIM      = "buildingUnclaim";
     public static final String TAG_CITIZENS               = "citizens";
     public static final String TAG_ACHIEVEMENT            = "achievement";
     public static final String TAG_ACHIEVEMENT_LIST       = "achievementlist";
@@ -26,6 +31,7 @@ public final class NbtTagConstants
     public static final String TAG_ABANDONED              = "abandoned";
     public static final String TAG_BUILDING_PRIO          = "buildingPrio";
     public static final String TAG_PRIO                   = "prio";
+    public static final String TAG_PRIO_MODE              = "prioMode";
     public static final String TAG_PRIO_ID                = "prioId";
     public static final String TAG_COLONIES               = "colonies";
     public static final String TAG_UUID                   = "uuid";
@@ -89,6 +95,7 @@ public final class NbtTagConstants
     public static final String TAG_PAUSED                 = "paused";
     public static final String TAG_CHILD                  = "child";
     public static final String TAG_BOUGHT_CITIZENS        = "bought_citizen";
+    public static final String TAG_JUST_ATE               = "justAte";
 
     /**
      * Tag used to store the containers to NBT.
@@ -321,6 +328,11 @@ public final class NbtTagConstants
      * Tag used to store if the entity is the main.
      */
     public static final String TAG_MAIN = "main";
+
+    /**
+     * Tag used to store if the entity is in a Warehouse.
+     */
+    public static final String TAG_IN_WAREHOUSE = "inWarehouse";
 
     /**
      * Tag used to store the team color of the colony.

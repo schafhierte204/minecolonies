@@ -531,7 +531,10 @@ public class InventoryUtils
         if (provider.hasCapability(ITEM_HANDLER_CAPABILITY, null))
         {
             final IItemHandler nullHandler = provider.getCapability(ITEM_HANDLER_CAPABILITY, null);
-            handlerList.add(nullHandler);
+            if (nullHandler != null)
+            {
+                handlerList.add(nullHandler);
+            }
         }
 
         handlerList.removeIf(Objects::isNull);
@@ -2578,6 +2581,7 @@ public class InventoryUtils
             if(invWrapper.getStackInSlot(i).isItemEqual(itemStack))
             {
                 invWrapper.getStackInSlot(i).shrink(quantity);
+                return;
             }
         }
 

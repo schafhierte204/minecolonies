@@ -18,9 +18,11 @@ import com.minecolonies.coremod.tileentities.*;
 import com.minecolonies.coremod.util.TownHallRecipe;
 import com.ldtteam.structurize.client.gui.WindowBuildTool;
 import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.stats.RecipeBook;
@@ -49,7 +51,7 @@ import static com.minecolonies.api.util.constant.ColonyConstants.*;
  * CommonProxy of the minecolonies mod (Server and Client).
  */
 @Mod.EventBusSubscriber
-public class CommonProxy implements IProxy
+public abstract class CommonProxy implements IProxy
 {
     /**
      * Spawn egg colors.
@@ -139,6 +141,7 @@ public class CommonProxy implements IProxy
         GameRegistry.registerTileEntity(TileEntityRack.class, new ResourceLocation(Constants.MOD_ID, "rack"));
         GameRegistry.registerTileEntity(TileEntityInfoPoster.class, new ResourceLocation(Constants.MOD_ID, "infoposter"));
         GameRegistry.registerTileEntity(TileEntityBarrel.class, new ResourceLocation(Constants.MOD_ID, "barrel"));
+        GameRegistry.registerTileEntity(TileEntityDecorationController.class, new ResourceLocation(Constants.MOD_ID, "decorationcontroller"));
 
         NetworkRegistry.INSTANCE.registerGuiHandler(MineColonies.instance, new GuiHandler());
     }
@@ -285,6 +288,14 @@ public class CommonProxy implements IProxy
     }
 
     @Override
+    public void openSuggestionWindow(@NotNull BlockPos pos, @NotNull IBlockState state, @NotNull final ItemStack stack)
+    {
+        /*
+         * Intentionally left empty.
+         */
+    }
+
+    @Override
     public void openBuildToolWindow(final BlockPos pos, final String structureName, final int rotation, final WindowBuildTool.FreeMode mode)
     {
         /*
@@ -349,5 +360,13 @@ public class CommonProxy implements IProxy
     public RecipeBook getRecipeBookFromPlayer(@NotNull final EntityPlayer player)
     {
         return ((EntityPlayerMP) player).getRecipeBook();
+    }
+
+    @Override
+    public void openDecorationControllerWindow(@NotNull final BlockPos pos)
+    {
+        /*
+         * Intentionally left empty.
+         */
     }
 }
