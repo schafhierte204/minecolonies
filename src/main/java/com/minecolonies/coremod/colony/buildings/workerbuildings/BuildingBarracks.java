@@ -9,7 +9,10 @@ import com.minecolonies.coremod.colony.Colony;
 import com.minecolonies.coremod.colony.ColonyView;
 import com.minecolonies.coremod.colony.buildings.AbstractBuilding;
 import com.minecolonies.coremod.colony.buildings.views.AbstractBuildingView;
+import com.minecolonies.coremod.entity.ai.mobs.AbstractEntityMinecoloniesMob;
+import com.minecolonies.coremod.entity.ai.mobs.barbarians.AbstractEntityBarbarian;
 import com.minecolonies.coremod.tileentities.TileEntityColonyBuilding;
+import io.netty.buffer.ByteBuf;
 import net.minecraft.block.BlockHorizontal;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
@@ -17,10 +20,12 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.util.Constants;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -147,16 +152,43 @@ public class BuildingBarracks extends AbstractBuilding
         compound.setTag(TAG_TOWERS, towerTagList);
     }
 
+    protected List<AbstractEntityMinecoloniesMob> getScoutingReport(){
+        return this.colony.getRaiderManager().getHorde((WorldServer) this.colony.getWorld());
+    }
+
+    @Override
+    public void serializeToView(@NotNull final ByteBuf buf) {
+        super.serializeToView(buf);
+        int hordeSize = 0;
+        //todo deal with null positions due to no raid going on... probably test for raid
+        if(!this.colony.getRaiderManager().getHorde((WorldServer) this.colony.getWorld()).isEmpty()){
+            List<AbstractEntityMinecoloniesMob> raiderList = this.getScoutingReport();
+            hordeSize = raiderList.size();
+            List<BlockPos> raiderPositions =
+                    raiderList.stream().map(entity -> entity.getPosition()).collect(Collectors.toList());
+            //raiderPositions.sort(Comparator.comparing(BlockPos)); todo deal with this later
+            for (BlockPos raiderPosition:raiderPositions)
+            {
+                BlockPosUtil.writeToByteBuf(buf, raiderPosition);
+            }
+            buf.writeByte(hordeSize);
+        }
+
+    }
+
+
     /**
      * Barracks building View.
      */
     public static class View extends AbstractBuildingView
     {
+        private List<BlockPos> raiderPositions;
+        private int hordeSize;
         /**
          * Instantiate the barracks view.
          *
          * @param c the colonyview to put it in
-         * @param l the positon
+         * @param l the position
          */
         public View(final ColonyView c, final BlockPos l)
         {
@@ -168,6 +200,18 @@ public class BuildingBarracks extends AbstractBuilding
         public Window getWindow()
         {
             return new WindowBarracksBuilding(this);
+        }
+
+        @Override
+        public void deserialize(@NotNull ByteBuf buf) {
+            raiderPositions = new ArrayList<>();
+            super.deserialize(buf);
+            hordeSize = buf.readInt();
+            for(int i = 0; i<hordeSize; i++)
+            {
+                final BlockPos pos = BlockPosUtil.readFromByteBuf(buf);
+                raiderPositions.add(pos);
+            }
         }
     }
 }
