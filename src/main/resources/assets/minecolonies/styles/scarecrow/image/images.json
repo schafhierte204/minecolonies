@@ -1,0 +1,13 @@
+{
+  "id": "image",
+  "resources": [
+    {
+      "id": "image:scarecrow_main",
+      "data": "minecolonies:styles/scarecrow/image/scarecrow_main.png"
+    },
+    {
+      "id": "image:scarecrow_player",
+      "data": "minecolonies:styles/scarecrow/image/scarecrow_player.png"
+    }
+  ]
+}

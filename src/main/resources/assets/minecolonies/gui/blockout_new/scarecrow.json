@@ -1,0 +1,58 @@
+{
+  "id":"root",
+  "type": "blockout:root",
+  "style": "minecolonies:scarecrow",
+  "size": "176,166",
+  "children": [
+    {
+      "id":"scarecrow_main",
+      "type":"blockout:region",
+      "size":"176,77",
+      "margin":"0,0",
+      "children": [
+        {
+          "id": "background_scarecrow_main",
+          "type": "blockout:image",
+          "size": "176,77",
+          "icon": "image:scarecrow_main"
+        },
+        {
+          "id": "label_used_by",
+          "type": "blockout:label",
+          "size": "176, 13",
+          "margin": "7,6",
+          "content": "{Binding:Desc}"
+        },
+        {
+          "id": "seed_type",
+          "type": "blockout:slot",
+          "alignment":"TOP,LEFT,RIGHT,BOTTOM",
+          "size":"18,18",
+          "background": "image:slot_default_18x18",
+          "index": "0",
+          "inventory":"minecolonies:scarecrow"
+        }
+      ]
+    },
+    {
+      "id":"scarecrow_player",
+      "type":"blockout:region",
+      "size":"176,90",
+      "margin":"0,77",
+      "children": [
+        {
+          "id": "background_scarecrow_player",
+          "type": "blockout:image",
+          "size": "176,90",
+          "icon": "image:scarecrow_player"
+        },
+        {
+          "id":"player_inventory",
+          "type":"blockout:instance",
+          "template":"minecolonies:player_inventory",
+          "margin":"7,4"
+        }
+      ]
+    }
+  ]
+}

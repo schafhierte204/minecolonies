@@ -1,0 +1,369 @@
+{
+  "id":"template_player_inventory_root",
+  "type":"blockout:template",
+  "children":[
+    {
+      "id":"player_inventory_root",
+      "type":"blockout:region",
+      "style":"minecolonies:general",
+      "size":"162,79",
+      "children":[
+        {
+          "id":"player_inventory_9-17",
+          "type":"blockout:region",
+          "size":"162,18",
+          "children":[
+            {
+              "id":"player_inventory_9",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"0,0",
+              "background": "image:slot_default_18x18",
+              "index": "9",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_10",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"18,0",
+              "background": "image:slot_default_18x18",
+              "index": "10",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_11",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"36,0",
+              "background": "image:slot_default_18x18",
+              "index": "11",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_12",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"54,0",
+              "background": "image:slot_default_18x18",
+              "index": "12",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_13",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"72,0",
+              "background": "image:slot_default_18x18",
+              "index": "13",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_14",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"90,0",
+              "background": "image:slot_default_18x18",
+              "index": "14",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_15",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"108,0",
+              "background": "image:slot_default_18x18",
+              "index": "15",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_16",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"126,0",
+              "background": "image:slot_default_18x18",
+              "index": "16",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_17",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"144,0",
+              "background": "image:slot_default_18x18",
+              "index": "17",
+              "inventory": "minecraft:player"
+            }
+          ]
+        },
+        {
+          "id":"player_inventory_18-26",
+          "type":"blockout:region",
+          "size":"162,18",
+          "margin":"0,18",
+          "children":[
+            {
+              "id":"player_inventory_18",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"0,0",
+              "background": "image:slot_default_18x18",
+              "index": "18",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_19",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"18,0",
+              "background": "image:slot_default_18x18",
+              "index": "19",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_20",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"36,0",
+              "background": "image:slot_default_18x18",
+              "index": "20",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_21",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"54,0",
+              "background": "image:slot_default_18x18",
+              "index": "21",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_22",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"72,0",
+              "background": "image:slot_default_18x18",
+              "index": "22",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_23",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"90,0",
+              "background": "image:slot_default_18x18",
+              "index": "23",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_24",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"108,0",
+              "background": "image:slot_default_18x18",
+              "index": "24",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_25",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"126,0",
+              "background": "image:slot_default_18x18",
+              "index": "25",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_26",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"144,0",
+              "background": "image:slot_default_18x18",
+              "index": "26",
+              "inventory": "minecraft:player"
+            }
+          ]
+        },
+        {
+          "id":"player_inventory_27-35",
+          "type":"blockout:region",
+          "size":"162,18",
+          "margin":"0,36",
+          "children":[
+            {
+              "id":"player_inventory_27",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"0,0",
+              "background": "image:slot_default_18x18",
+              "index": "27",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_28",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"18,0",
+              "background": "image:slot_default_18x18",
+              "index": "28",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_29",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"36,0",
+              "background": "image:slot_default_18x18",
+              "index": "29",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_30",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"54,0",
+              "background": "image:slot_default_18x18",
+              "index": "30",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_31",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"72,0",
+              "background": "image:slot_default_18x18",
+              "index": "31",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_32",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"90,0",
+              "background": "image:slot_default_18x18",
+              "index": "32",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_33",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"108,0",
+              "background": "image:slot_default_18x18",
+              "index": "33",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_34",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"126,0",
+              "background": "image:slot_default_18x18",
+              "index": "34",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_35",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"144,0",
+              "background": "image:slot_default_18x18",
+              "index": "35",
+              "inventory": "minecraft:player"
+            }
+          ]
+        },
+        {
+          "id":"player_hotbar_0-8",
+          "type":"blockout:region",
+          "size":"162,18",
+          "margin":"0,61",
+          "children":[
+            {
+              "id":"player_inventory_0",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"0,0",
+              "background": "image:slot_default_18x18",
+              "index": "0",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_1",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"18,0",
+              "background": "image:slot_default_18x18",
+              "index": "1",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_2",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"36,0",
+              "background": "image:slot_default_18x18",
+              "index": "2",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_3",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"54,0",
+              "background": "image:slot_default_18x18",
+              "index": "3",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_4",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"72,0",
+              "background": "image:slot_default_18x18",
+              "index": "4",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_5",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"90,0",
+              "background": "image:slot_default_18x18",
+              "index": "5",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_6",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"108,0",
+              "background": "image:slot_default_18x18",
+              "index": "6",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_7",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"126,0",
+              "background": "image:slot_default_18x18",
+              "index": "7",
+              "inventory": "minecraft:player"
+            },
+            {
+              "id":"player_inventory_8",
+              "type":"blockout:slot",
+              "size":"18,18",
+              "margin":"144,0",
+              "background": "image:slot_default_18x18",
+              "index": "8",
+              "inventory": "minecraft:player"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

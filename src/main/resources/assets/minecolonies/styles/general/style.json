@@ -1,0 +1,6 @@
+{
+  "id": "minecolonies:general",
+  "types": [
+    "minecolonies:styles/general/controls/controls.json"
+  ]
+}

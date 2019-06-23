@@ -1,0 +1,6 @@
+{
+  "id": "minecolonies:scarecrow",
+  "types": [
+    "minecolonies:styles/scarecrow/image/images.json"
+  ]
+}

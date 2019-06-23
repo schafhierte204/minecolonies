@@ -1,0 +1,9 @@
+{
+  "id": "template",
+  "resources": [
+    {
+      "id": "minecolonies:player_inventory",
+      "data": "minecolonies:styles/general/controls/player_inventory.json"
+    }
+  ]
+}
