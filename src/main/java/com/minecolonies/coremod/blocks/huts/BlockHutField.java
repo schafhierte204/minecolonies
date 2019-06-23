@@ -1,5 +1,15 @@
 package com.minecolonies.coremod.blocks.huts;
 
+import com.ldtteam.blockout.binding.dependency.DependencyObjectHelper;
+import com.ldtteam.blockout.connector.core.IGuiController;
+import com.ldtteam.blockout.connector.core.inventory.builder.IItemHandlerManagerBuilder;
+import com.ldtteam.blockout.element.root.RootGuiElement;
+import com.ldtteam.jvoxelizer.launcher.forge_1_12.block.entity.BlockEntity;
+import com.ldtteam.jvoxelizer.launcher.forge_1_12.dimension.Dimension;
+import com.ldtteam.jvoxelizer.launcher.forge_1_12.entity.Entity;
+import com.ldtteam.jvoxelizer.launcher.forge_1_12.entity.living.player.PlayerEntity;
+import com.ldtteam.jvoxelizer.launcher.forge_1_12.util.identifier.Identifier;
+import com.ldtteam.jvoxelizer.launcher.forge_1_12.util.math.coordinate.block.BlockCoordinate;
 import com.minecolonies.api.util.constant.Constants;
 import com.minecolonies.coremod.MineColonies;
 import com.minecolonies.coremod.blocks.AbstractBlockMinecoloniesContainer;
@@ -16,10 +26,7 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.BlockRenderLayer;
-import net.minecraft.util.EnumBlockRenderType;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
+import net.minecraft.util.*;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.Explosion;
@@ -162,28 +169,56 @@ public class BlockHutField extends AbstractBlockMinecoloniesContainer<BlockHutFi
 
     @Override
     public boolean onBlockActivated(
-                                     final World worldIn,
-                                     final BlockPos pos,
-                                     final IBlockState state,
-                                     final EntityPlayer playerIn,
-                                     final EnumHand hand,
-                                     final EnumFacing facing,
-                                     final float hitX,
-                                     final float hitY,
-                                     final float hitZ)
+      final World worldIn,
+      final BlockPos pos,
+      final IBlockState state,
+      final EntityPlayer playerIn,
+      final EnumHand hand,
+      final EnumFacing facing,
+      final float hitX,
+      final float hitY,
+      final float hitZ)
     {
         //If the world is server, open the inventory of the field.
         if (!worldIn.isRemote)
         {
             @Nullable final Colony colony = ColonyManager.getColonyByPosFromWorld(worldIn, pos);
-            if (colony != null)
+            @Nullable final TileEntity tileEntity = worldIn.getTileEntity(pos);
+            if (colony != null && tileEntity instanceof ScarecrowTileEntity)
             {
-                playerIn.openGui(MineColonies.instance, 0, worldIn, pos.getX(), pos.getY(), pos.getZ());
+                @NotNull final ScarecrowTileEntity scarecrowTileEntity = (ScarecrowTileEntity) tileEntity;
+                IGuiController.getInstance().openUI(
+                  PlayerEntity.fromForge(playerIn),
+                  iGuiKeyBuilder -> iGuiKeyBuilder
+                                      .forPosition(Dimension.fromForge(worldIn), BlockCoordinate.fromForge(pos))
+                                      .usingDefaultData()
+                                      .withItemHandlerManager((IItemHandlerManagerBuilder iItemHandlerManagerBuilder) ->
+                                                                iItemHandlerManagerBuilder
+                                                                  .withTileBasedProvider(
+                                                                    Identifier.fromForge(new ResourceLocation("minecolonies:scarecrow")),
+                                                                    BlockEntity.fromForge(tileEntity),
+                                                                    null
+                                                                  )
+                                                                  .withEntityBasedProvider(
+                                                                    Identifier.fromForge(new ResourceLocation("minecraft:player")),
+                                                                    Entity.fromForge(playerIn),
+                                                                    null
+                                                                  )
+                                      )
+                                      .ofFile(Identifier.fromForge(new ResourceLocation("minecolonies:gui/blockout_new/scarecrow.json")))
+                                      .usingData(iBlockOutGuiConstructionDataBuilder ->
+                                                   iBlockOutGuiConstructionDataBuilder
+                                                     .withControl("root", RootGuiElement.RootGuiConstructionDataBuilder.class,
+                                                       rootGuiConstructionDataBuilder -> rootGuiConstructionDataBuilder.withDependentDataContext(DependencyObjectHelper.createFromValue(scarecrowTileEntity)))
+                                      )
+
+                );
                 return true;
             }
         }
         return false;
     }
+
 
     // =======================================================================
     // ======================= Rendering & IBlockState =======================

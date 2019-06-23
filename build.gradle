@@ -92,7 +92,7 @@ dependencies {
     
     contained "com.ldtteam:structurize:${config.minecraft_version}-${config.structurize_version}"
     deobfCompile "com.ldtteam:structurize:${config.minecraft_version}-${config.structurize_version}"
-
+    compile group: 'com.google.guava', name: 'guava', version: '21.0'
     compile "mod.chiselsandbits:chiselsandbits:${config.c_b_version}:api"
     deobfCompile "slimeknights.mantle:Mantle:1.12-${config.mantle_version}"
     deobfCompile "slimeknights:TConstruct:1.12.2-${config.tinker_version}"
