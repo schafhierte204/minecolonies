@@ -3,7 +3,6 @@ package com.minecolonies.coremod.tileentities;
 import com.ldtteam.structurize.blocks.ModBlocks;
 import com.minecolonies.api.util.EntityUtils;
 import com.minecolonies.api.util.ItemStackUtils;
-import com.minecolonies.blockout.element.simple.Label;
 import com.minecolonies.coremod.colony.Colony;
 import com.minecolonies.coremod.colony.ColonyManager;
 import com.minecolonies.coremod.colony.ColonyView;
@@ -311,11 +310,11 @@ public class ScarecrowTileEntity extends TileEntity
     @Nullable
     public ItemStack getSeed()
     {
-        if (getItems().get(0) != ItemStackUtils.EMPTY && getItems().get(0).getItem() instanceof IPlantable)
+        if (inventory.getStackInSlot(0) != ItemStackUtils.EMPTY && inventory.getStackInSlot(0).getItem() instanceof IPlantable)
         {
-            return getItems().get(0);
+            return inventory.getStackInSlot(0);
         }
-        return ItemStackUtils.EMPTY;
+        return null;
     }
 
     /**
