@@ -1,9 +1,12 @@
 package com.minecolonies.coremod.util;
 
 import com.google.common.io.Files;
+import com.minecolonies.api.colony.IColony;
+import com.minecolonies.api.colony.IColonyManager;
+import com.minecolonies.api.colony.buildings.IBuilding;
+import com.minecolonies.api.configuration.Configurations;
 import com.minecolonies.api.util.Log;
 import com.minecolonies.coremod.colony.Colony;
-import com.minecolonies.coremod.colony.ColonyManager;
 import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.World;
@@ -50,7 +53,7 @@ public final class BackUpHelper
 
             for (int dim = 0; dim < FMLCommonHandler.instance().getMinecraftServerInstance().worlds.length; dim++)
             {
-                for (int i = 1; i <= ColonyManager.getTopColonyId() + 1; i++)
+                for (int i = 1; i <= IColonyManager.getInstance().getTopColonyId() + 1; i++)
                 {
                     @NotNull final File file = new File(saveDir, String.format(FILENAME_COLONY, i, dim));
                     if (file.exists())
@@ -173,12 +176,12 @@ public final class BackUpHelper
     public static void saveColonies(final boolean isWorldUnload)
     {
         @NotNull final NBTTagCompound compound = new NBTTagCompound();
-        ColonyManager.writeToNBT(compound);
+        IColonyManager.getInstance().writeToNBT(compound);
 
         @NotNull final File file = getSaveLocation();
         saveNBTToPath(file, compound);
         @NotNull final File saveDir = new File(DimensionManager.getWorld(0).getSaveHandler().getWorldDirectory(), FILENAME_MINECOLONIES_PATH);
-        for (final Colony colony : ColonyManager.getAllColonies())
+        for (final IColony colony : IColonyManager.getInstance().getAllColonies())
         {
             final NBTTagCompound colonyCompound = new NBTTagCompound();
             colony.writeToNBT(colonyCompound);
@@ -197,11 +200,11 @@ public final class BackUpHelper
         final NBTTagCompound compound = loadNBTFromPath(new File(saveDir, String.format(FILENAME_COLONY, colonyId, dimension)));
         if (compound == null)
         {
-            Log.getLogger().warn("Can't find NBT of colony: " + colonyId + " at location: " + new File(saveDir, String.format(FILENAME_COLONY, colonyId, dimension).toString()));
+            Log.getLogger().warn("Can't find NBT of colony: " + colonyId + " at location: " + new File(saveDir, String.format(FILENAME_COLONY, colonyId, dimension)));
             return;
         }
 
-        Colony colony = ColonyManager.getColonyByDimension(colonyId, dimension);
+        IColony colony = IColonyManager.getInstance().getColonyByDimension(colonyId, dimension);
         if (colony != null)
         {
             colony.readFromNBT(compound);
@@ -212,7 +215,18 @@ public final class BackUpHelper
             final World colonyWorld = FMLCommonHandler.instance().getMinecraftServerInstance().getWorld(dimension);
             colony = Colony.loadColony(compound, colonyWorld);
             colonyWorld.getCapability(COLONY_MANAGER_CAP, null).addColony(colony);
-            ChunkDataHelper.claimColonyChunks(colonyWorld, true, colony.getID(), colony.getCenter(), colony.getDimension());
+
+            if (Configurations.gameplay.enableDynamicColonySizes)
+            {
+                for (final IBuilding building : colony.getBuildingManager().getBuildings().values())
+                {
+                    ChunkDataHelper.claimColonyChunks(colonyWorld, true, colony.getID(), building.getPosition(), colony.getDimension(), building.getClaimRadius(building.getBuildingLevel()));
+                }
+            }
+            else
+            {
+                ChunkDataHelper.claimColonyChunks(colonyWorld, true, colony.getID(), colony.getCenter(), colony.getDimension());
+            }
         }
 
         Log.getLogger().warn("Successfully restored colony!");

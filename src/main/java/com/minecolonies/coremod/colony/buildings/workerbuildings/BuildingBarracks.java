@@ -1,12 +1,16 @@
 package com.minecolonies.coremod.colony.buildings.workerbuildings;
 
+import com.minecolonies.api.blocks.ModBlocks;
+import com.minecolonies.api.colony.IColony;
+import com.minecolonies.api.colony.IColonyView;
+import com.minecolonies.api.colony.buildings.IBuilding;
+import com.minecolonies.api.colony.buildings.ModBuildings;
+import com.minecolonies.api.colony.buildings.registry.BuildingEntry;
+import com.minecolonies.api.tileentities.TileEntityColonyBuilding;
 import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.NBTUtils;
 import com.minecolonies.blockout.views.Window;
-import com.minecolonies.coremod.blocks.ModBlocks;
 import com.minecolonies.coremod.client.gui.WindowBarracksBuilding;
-import com.minecolonies.coremod.colony.Colony;
-import com.minecolonies.coremod.colony.ColonyView;
 import com.minecolonies.coremod.colony.buildings.AbstractBuilding;
 import com.minecolonies.coremod.colony.buildings.views.AbstractBuildingView;
 import com.minecolonies.coremod.entity.ai.mobs.AbstractEntityMinecoloniesMob;
@@ -62,7 +66,7 @@ public class BuildingBarracks extends AbstractBuilding
      * @param colony Colony the building belongs to.
      * @param pos    Location of the building (it's Hut Block).
      */
-    public BuildingBarracks(@NotNull final Colony colony, final BlockPos pos)
+    public BuildingBarracks(@NotNull final IColony colony, final BlockPos pos)
     {
         super(colony, pos);
     }
@@ -106,11 +110,11 @@ public class BuildingBarracks extends AbstractBuilding
                 world.setBlockState(pos, ModBlocks.blockHutBarracksTower.getDefaultState().withProperty(BlockHorizontal.FACING, block.getValue(BlockHorizontal.FACING)));
                 getColony().getBuildingManager().addNewBuilding((TileEntityColonyBuilding) world.getTileEntity(pos), world);
             }
-            final AbstractBuilding building = getColony().getBuildingManager().getBuilding(pos);
+            final IBuilding building = getColony().getBuildingManager().getBuilding(pos);
             if (building instanceof BuildingBarracksTower)
             {
                 building.setStyle(this.getStyle());
-                ((BuildingBarracksTower) building).addBarracks(getLocation());
+                ((BuildingBarracksTower) building).addBarracks(getPosition());
                 if (!towers.contains(pos))
                 {
                     towers.add(pos);
@@ -120,12 +124,12 @@ public class BuildingBarracks extends AbstractBuilding
     }
 
     @Override
-    public int getClaimRadius()
+    public int getClaimRadius(final int newLevel)
     {
-        int sum = getBuildingLevel();
+        int sum = newLevel;
         for (final BlockPos pos : towers)
         {
-            final AbstractBuilding building = colony.getBuildingManager().getBuilding(pos);
+            final IBuilding building = colony.getBuildingManager().getBuilding(pos);
             if (building != null)
             {
                 sum += building.getBuildingLevel();
@@ -135,9 +139,15 @@ public class BuildingBarracks extends AbstractBuilding
     }
 
     @Override
-    public void readFromNBT(@NotNull final NBTTagCompound compound)
+    public BuildingEntry getBuildingRegistryEntry()
     {
-        super.readFromNBT(compound);
+        return ModBuildings.barracks;
+    }
+
+    @Override
+    public void deserializeNBT(final NBTTagCompound compound)
+    {
+        super.deserializeNBT(compound);
         towers.clear();
         towers.addAll(NBTUtils.streamCompound(compound.getTagList(TAG_TOWERS, Constants.NBT.TAG_COMPOUND))
                         .map(resultCompound -> BlockPosUtil.readFromNBT(resultCompound, TAG_POS))
@@ -145,11 +155,13 @@ public class BuildingBarracks extends AbstractBuilding
     }
 
     @Override
-    public void writeToNBT(@NotNull final NBTTagCompound compound)
+    public NBTTagCompound serializeNBT()
     {
-        super.writeToNBT(compound);
+        final NBTTagCompound compound = super.serializeNBT();
         final NBTTagList towerTagList = towers.stream().map(pos -> BlockPosUtil.writeToNBT(new NBTTagCompound(), TAG_POS, pos)).collect(NBTUtils.toNBTTagList());
         compound.setTag(TAG_TOWERS, towerTagList);
+
+        return compound;
     }
 
     protected List<AbstractEntityMinecoloniesMob> getScoutingReport(){
@@ -190,7 +202,7 @@ public class BuildingBarracks extends AbstractBuilding
          * @param c the colonyview to put it in
          * @param l the position
          */
-        public View(final ColonyView c, final BlockPos l)
+        public View(final IColonyView c, final BlockPos l)
         {
             super(c, l);
         }
