@@ -1,17 +1,17 @@
 package com.minecolonies.coremod.colony.buildings.workerbuildings;
 
+import com.minecolonies.api.colony.ICitizenData;
+import com.minecolonies.api.colony.IColony;
+import com.minecolonies.api.colony.IColonyManager;
+import com.minecolonies.api.colony.IColonyView;
+import com.minecolonies.api.colony.buildings.ModBuildings;
+import com.minecolonies.api.colony.buildings.registry.BuildingEntry;
+import com.minecolonies.api.colony.jobs.IJob;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.crafting.IRecipeStorage;
 import com.minecolonies.blockout.views.Window;
 import com.minecolonies.coremod.client.gui.WindowHutStoneSmelter;
-import com.minecolonies.coremod.client.gui.WindowHutWorkerPlaceholder;
-import com.minecolonies.coremod.colony.CitizenData;
-import com.minecolonies.coremod.colony.Colony;
-import com.minecolonies.coremod.colony.ColonyManager;
-import com.minecolonies.coremod.colony.ColonyView;
-import com.minecolonies.coremod.colony.buildings.AbstractBuildingCrafter;
 import com.minecolonies.coremod.colony.buildings.AbstractBuildingSmelterCrafter;
-import com.minecolonies.coremod.colony.jobs.AbstractJob;
 import com.minecolonies.coremod.colony.jobs.JobStoneSmeltery;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockGlazedTerracotta;
@@ -43,7 +43,7 @@ public class BuildingStoneSmeltery extends AbstractBuildingSmelterCrafter
      * @param c the colony.
      * @param l the location
      */
-    public BuildingStoneSmeltery(final Colony c, final BlockPos l)
+    public BuildingStoneSmeltery(final IColony c, final BlockPos l)
     {
         super(c, l);
     }
@@ -63,7 +63,7 @@ public class BuildingStoneSmeltery extends AbstractBuildingSmelterCrafter
 
     @NotNull
     @Override
-    public AbstractJob createJob(final CitizenData citizen)
+    public IJob createJob(final ICitizenData citizen)
     {
         return new JobStoneSmeltery(citizen);
     }
@@ -78,13 +78,13 @@ public class BuildingStoneSmeltery extends AbstractBuildingSmelterCrafter
     @Override
     public boolean canRecipeBeAdded(final IToken token)
     {
-        if(!super.canRecipeBeAdded(token))
+        if (!super.canRecipeBeAdded(token))
         {
             return false;
         }
 
-        final IRecipeStorage storage = ColonyManager.getRecipeManager().getRecipes().get(token);
-        if(storage == null)
+        final IRecipeStorage storage = IColonyManager.getInstance().getRecipeManager().getRecipes().get(token);
+        if (storage == null)
         {
             return false;
         }
@@ -99,6 +99,7 @@ public class BuildingStoneSmeltery extends AbstractBuildingSmelterCrafter
 
     /**
      * Method to check if the stack is craftable for the smeltery.
+     *
      * @param stack the stack to craft.
      * @return true if so.
      */
@@ -108,16 +109,22 @@ public class BuildingStoneSmeltery extends AbstractBuildingSmelterCrafter
         if (item instanceof ItemBlock)
         {
             final Block block = ((ItemBlock) item).getBlock();
-            if ( block == Blocks.STONE
-                   || block == Blocks.STONEBRICK
-                   || block instanceof BlockGlazedTerracotta
-                   || block instanceof BlockHardenedClay)
+            if (block == Blocks.STONE
+                  || block == Blocks.STONEBRICK
+                  || block instanceof BlockGlazedTerracotta
+                  || block instanceof BlockHardenedClay)
             {
                 return true;
             }
         }
 
-       return item == Items.BRICK;
+        return item == Items.BRICK || item == Items.COAL;
+    }
+
+    @Override
+    public BuildingEntry getBuildingRegistryEntry()
+    {
+        return ModBuildings.stoneSmelter;
     }
 
     /**
@@ -132,7 +139,7 @@ public class BuildingStoneSmeltery extends AbstractBuildingSmelterCrafter
          * @param c the colonyview to put it in
          * @param l the positon
          */
-        public View(final ColonyView c, final BlockPos l)
+        public View(final IColonyView c, final BlockPos l)
         {
             super(c, l);
         }

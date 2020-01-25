@@ -1,25 +1,26 @@
 package com.minecolonies.coremod.entity.ai.citizen.herders;
 
+import com.minecolonies.api.colony.interactionhandling.TranslationTextComponent;
+import com.minecolonies.api.entity.ai.statemachine.AITarget;
+import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.constant.ToolType;
 import com.minecolonies.api.util.constant.TranslationConstants;
 import com.minecolonies.coremod.colony.buildings.workerbuildings.BuildingShepherd;
 import com.minecolonies.coremod.colony.jobs.JobShepherd;
-import com.minecolonies.coremod.entity.ai.statemachine.AITarget;
-import com.minecolonies.coremod.entity.ai.statemachine.states.IAIState;
 import net.minecraft.entity.passive.EntitySheep;
 import net.minecraft.init.Items;
 import net.minecraft.item.EnumDyeColor;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumHand;
-import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraftforge.items.wrapper.InvWrapper;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.minecolonies.coremod.entity.ai.statemachine.states.AIWorkerState.*;
+import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
+import static com.minecolonies.api.util.constant.Constants.TICKS_SECOND;
 
 /**
  * The AI behind the {@link JobShepherd} for Breeding, Killing and Shearing sheep.
@@ -54,7 +55,7 @@ public class EntityAIWorkShepherd extends AbstractEntityAIHerder<JobShepherd, En
         worker.getCitizenExperienceHandler().setSkillModifier(2 * worker.getCitizenData().getDexterity() + worker.getCitizenData().getStrength());
 
         super.registerTargets(
-          new AITarget(SHEPHERD_SHEAR, this::shearSheep)
+          new AITarget(SHEPHERD_SHEAR, this::shearSheep, TICKS_SECOND)
         );
     }
 
@@ -76,7 +77,9 @@ public class EntityAIWorkShepherd extends AbstractEntityAIHerder<JobShepherd, En
     @Override
     public ItemStack getBreedingItem()
     {
-        return new ItemStack(Items.WHEAT);
+        final ItemStack stack = new ItemStack(Items.WHEAT);
+        stack.setCount(2);
+        return stack;
     }
 
     @Override
@@ -115,7 +118,7 @@ public class EntityAIWorkShepherd extends AbstractEntityAIHerder<JobShepherd, En
      */
     private IAIState shearSheep()
     {
-        worker.getCitizenStatusHandler().setLatestStatus(new TextComponentTranslation(TranslationConstants.COM_MINECOLONIES_COREMOD_STATUS_SHEPHERD_SHEARING));
+        worker.getCitizenStatusHandler().setLatestStatus(new TranslationTextComponent(TranslationConstants.COM_MINECOLONIES_COREMOD_STATUS_SHEPHERD_SHEARING));
 
         final List<EntitySheep> sheeps = searchForAnimals();
 
@@ -139,7 +142,7 @@ public class EntityAIWorkShepherd extends AbstractEntityAIHerder<JobShepherd, En
             }
             worker.swingArm(EnumHand.MAIN_HAND);
             final List<ItemStack> items = sheep.onSheared(worker.getHeldItemMainhand(),
-              worker.world,
+              worker.getEntityWorld(),
               worker.getPosition(),
               net.minecraft.enchantment.EnchantmentHelper.getEnchantmentLevel(net.minecraft.init.Enchantments.FORTUNE, worker.getHeldItemMainhand()));
 
@@ -167,7 +170,7 @@ public class EntityAIWorkShepherd extends AbstractEntityAIHerder<JobShepherd, En
      */
     private void dyeSheepChance(final EntitySheep sheep)
     {
-        if (worker.getCitizenColonyHandler().getWorkBuilding() != null)
+        if (worker.getCitizenColonyHandler().getWorkBuilding() != null && ((BuildingShepherd) worker.getCitizenColonyHandler().getWorkBuilding()).isDyeSheeps())
         {
             final int chanceToDye = worker.getCitizenColonyHandler().getWorkBuilding().getBuildingLevel();
 

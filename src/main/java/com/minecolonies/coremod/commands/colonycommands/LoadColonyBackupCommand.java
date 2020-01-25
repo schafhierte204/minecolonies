@@ -1,5 +1,6 @@
 package com.minecolonies.coremod.commands.colonycommands;
 
+import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.permissions.Rank;
 import com.minecolonies.coremod.colony.Colony;
 import com.minecolonies.coremod.commands.AbstractSingleCommand;
@@ -60,7 +61,7 @@ public class LoadColonyBackupCommand extends AbstractSingleCommand implements IA
     }
 
     @Override
-    public boolean canRankUseCommand(@NotNull final Colony colony, @NotNull final EntityPlayer player)
+    public boolean canRankUseCommand(@NotNull final IColony colony, @NotNull final EntityPlayer player)
     {
         return colony.getPermissions().getRank(player).equals(Rank.OWNER);
     }
@@ -74,9 +75,10 @@ public class LoadColonyBackupCommand extends AbstractSingleCommand implements IA
             return;
         }
 
-        final int colonyId = actionMenuState.getIntegerForArgument("colony");
-        final int dimension = actionMenuState.getIntegerForArgument("dimension");
-        server.addScheduledTask(() -> BackUpHelper.loadColonyBackup(colonyId, dimension));
+        final IColony colony = actionMenuState.getColonyForArgument("colony");
+        final int colonyId = colony.getID();
+        final int dimension = colony.getDimension();
+        server.addScheduledTask(() -> BackUpHelper.loadColonyBackup(colonyId, dimension, true));
     }
 
     @NotNull

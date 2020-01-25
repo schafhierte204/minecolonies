@@ -1,9 +1,16 @@
 package com.minecolonies.coremod.colony.jobs;
 
-import com.minecolonies.coremod.client.render.RenderBipedCitizen;
-import com.minecolonies.coremod.colony.CitizenData;
+import com.minecolonies.api.client.render.modeltype.BipedModelType;
+import com.minecolonies.api.colony.ICitizenData;
+import com.minecolonies.api.colony.jobs.ModJobs;
+import com.minecolonies.api.colony.jobs.registry.JobEntry;
+import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
 import com.minecolonies.coremod.entity.ai.citizen.guard.AbstractEntityAIGuard;
 import com.minecolonies.coremod.entity.ai.citizen.guard.EntityAIRanger;
+import com.minecolonies.coremod.util.AttributeModifierUtils;
+import net.minecraft.entity.ai.attributes.AttributeModifier;
+
+import static com.minecolonies.api.util.constant.CitizenConstants.GUARD_HEALTH_MOD_LEVEL_NAME;
 
 /**
  * The Ranger's Job class
@@ -22,7 +29,7 @@ public class JobRanger extends AbstractJobGuard
      *
      * @param entity the citizen data.
      */
-    public JobRanger(final CitizenData entity)
+    public JobRanger(final ICitizenData entity)
     {
         super(entity);
     }
@@ -39,6 +46,30 @@ public class JobRanger extends AbstractJobGuard
     }
 
     /**
+     * Custom Action on Levelup, increases Guard HP
+     */
+    @Override
+    public void onLevelUp(final int newLevel)
+    {
+        // Bonus Health for guards(gets reset upon Firing)
+        if (getCitizen().getCitizenEntity().isPresent())
+        {
+            final AbstractEntityCitizen citizen = getCitizen().getCitizenEntity().get();
+
+            // +1 Heart on levels 6,12,18,25,34,43,54 ...
+            final AttributeModifier healthModLevel =
+              new AttributeModifier(GUARD_HEALTH_MOD_LEVEL_NAME, (int) (getCitizen().getLevel() / (5.0 + getCitizen().getLevel() / 20.0) * 2), 0);
+            AttributeModifierUtils.addHealthModifier(citizen, healthModLevel);
+        }
+    }
+
+    @Override
+    public JobEntry getJobRegistryEntry()
+    {
+        return ModJobs.ranger;
+    }
+
+    /**
      * Gets the name of our ranger.
      *
      * @return The name.
@@ -50,13 +81,13 @@ public class JobRanger extends AbstractJobGuard
     }
 
     /**
-     * Gets the {@link RenderBipedCitizen.Model} to use for our ranger.
+     * Gets the {@link BipedModelType} to use for our ranger.
      *
      * @return The model to use.
      */
     @Override
-    public RenderBipedCitizen.Model getModel()
+    public BipedModelType getModel()
     {
-        return RenderBipedCitizen.Model.ARCHER_GUARD;
+        return BipedModelType.ARCHER_GUARD;
     }
 }

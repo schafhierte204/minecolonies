@@ -1,10 +1,14 @@
 package com.minecolonies.api.util;
 
+import com.google.common.collect.Lists;
 import com.minecolonies.api.compatibility.Compatibility;
 import com.minecolonies.api.compatibility.candb.ChiselAndBitsCheck;
+import com.minecolonies.api.crafting.ItemStorage;
+import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
+import com.minecolonies.api.items.ModItems;
 import com.minecolonies.api.util.constant.IToolType;
 import com.minecolonies.api.util.constant.ToolType;
-import net.minecraft.block.*;
+import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityList;
 import net.minecraft.entity.item.EntityArmorStand;
@@ -21,7 +25,6 @@ import net.minecraft.nbt.NBTTagList;
 import net.minecraft.tileentity.*;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.world.World;
-import net.minecraft.world.gen.structure.template.Template;
 import net.minecraftforge.oredict.OreDictionary;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -30,10 +33,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
-import static com.minecolonies.api.util.constant.Constants.FUEL_SLOT;
-import static com.minecolonies.api.util.constant.Constants.SAPLINGS;
-import static com.minecolonies.api.util.constant.Constants.SMELTABLE_SLOT;
+import static com.minecolonies.api.util.constant.Constants.*;
 import static com.minecolonies.api.util.constant.Suppression.DEPRECATION;
 
 /**
@@ -92,12 +94,18 @@ public final class ItemStackUtils
     /**
      * Predicate describing food which can be eaten (is not raw).
      */
-    public static final Predicate<ItemStack> CAN_EAT = itemStack -> !ItemStackUtils.isEmpty(itemStack) && itemStack.getItem() instanceof ItemFood && !(IS_SMELTABLE.test(itemStack));
+    public static final Predicate<ItemStack> CAN_EAT =
+      itemStack -> !ItemStackUtils.isEmpty(itemStack) && itemStack.getItem() instanceof ItemFood && !ISFOOD.test(FurnaceRecipes.instance().getSmeltingResult(itemStack));
 
     /**
      * Predicate describing cookables.
      */
-    public static final Predicate<ItemStack> ISCOOKABLE = ISFOOD.and(IS_SMELTABLE);
+    public static final Predicate<ItemStack> ISCOOKABLE = itemStack -> ISFOOD.test(FurnaceRecipes.instance().getSmeltingResult(itemStack));
+
+    /**
+     * Predicate to check for compost items.
+     */
+    public static final Predicate<ItemStack> IS_COMPOST = stack -> !stack.isEmpty() && stack.getItem() == ModItems.compost;
 
     /**
      * Private constructor to hide the implicit one.
@@ -113,39 +121,42 @@ public final class ItemStackUtils
      * Get itemStack of tileEntityData. Retrieve the data from the tileEntity.
      *
      * @param compound the tileEntity stored in a compound.
-     * @param world the world.
+     * @param world    the world.
      * @return the list of itemstacks.
      */
     public static List<ItemStack> getItemStacksOfTileEntity(final NBTTagCompound compound, final World world)
     {
         final List<ItemStack> items = new ArrayList<>();
-        final TileEntity tileEntity = TileEntity.create(world, compound);
-        if (tileEntity instanceof TileEntityFlowerPot)
+        if (compound != null)
         {
-            items.add(((TileEntityFlowerPot) tileEntity).getFlowerItemStack());
-        }
-        else if (tileEntity instanceof TileEntityLockable)
-        {
-            for (int i = 0; i < ((TileEntityLockable) tileEntity).getSizeInventory(); i++)
+            final TileEntity tileEntity = TileEntity.create(world, compound);
+            if (tileEntity instanceof TileEntityFlowerPot)
             {
-                final ItemStack stack = ((TileEntityLockable) tileEntity).getStackInSlot(i);
-                if (!ItemStackUtils.isEmpty(stack))
+                items.add(((TileEntityFlowerPot) tileEntity).getFlowerItemStack());
+            }
+            else if (tileEntity instanceof TileEntityLockable)
+            {
+                for (int i = 0; i < ((TileEntityLockable) tileEntity).getSizeInventory(); i++)
                 {
-                    items.add(stack);
+                    final ItemStack stack = ((TileEntityLockable) tileEntity).getStackInSlot(i);
+                    if (!ItemStackUtils.isEmpty(stack))
+                    {
+                        items.add(stack);
+                    }
                 }
             }
-        }
-        else if(tileEntity != null && ChiselAndBitsCheck.isChiselAndBitsTileEntity(tileEntity))
-        {
-            items.addAll(ChiselAndBitsCheck.getBitStacks(tileEntity));
-        }
-        else if(tileEntity instanceof TileEntityBed)
-        {
-            items.add(new ItemStack(Items.BED, 1, ((TileEntityBed) tileEntity).getColor().getMetadata()));
-        }
-        else if(tileEntity instanceof TileEntityBanner)
-        {
-            items.add(((TileEntityBanner)tileEntity).getItem());
+            else if (tileEntity != null && ChiselAndBitsCheck.isChiselAndBitsTileEntity(tileEntity))
+            {
+                items.addAll(ChiselAndBitsCheck.getBitStacks(tileEntity));
+            }
+            else if (tileEntity instanceof TileEntityBed)
+            {
+                items.add(new ItemStack(Items.BED, 1, ((TileEntityBed) tileEntity).getColor().getMetadata()));
+            }
+            else if (tileEntity instanceof TileEntityBanner)
+            {
+                items.add(((TileEntityBanner) tileEntity).getItem());
+            }
         }
         return items;
     }
@@ -153,16 +164,16 @@ public final class ItemStackUtils
     /**
      * Get the entity of an entityInfo object.
      *
-     * @param entityInfo the input.
-     * @param world the world.
+     * @param entityData the input.
+     * @param world      the world.
      * @return the output object or null.
      */
     @Nullable
-    public static Entity getEntityFromEntityInfoOrNull(final Template.EntityInfo entityInfo, final World world)
+    public static Entity getEntityFromEntityInfoOrNull(final NBTTagCompound entityData, final World world)
     {
         try
         {
-            return EntityList.createEntityFromNBT(entityInfo.entityData, world);
+            return EntityList.createEntityFromNBT(entityData, world);
         }
         catch (final RuntimeException e)
         {
@@ -173,19 +184,23 @@ public final class ItemStackUtils
 
     /**
      * Adds entities to the builder building if he needs it.
-     * @param entityInfo the entity info object.
-     * @param world the world.
-     * @param placer the entity placer.
+     *
+     * @param entityData the entity info object.
+     * @param world      the world.
+     * @param placer     the entity placer.
      * @return a list of stacks.
      */
-    public static List<ItemStack> getListOfStackForEntityInfo(final Template.EntityInfo entityInfo, final World world, final Entity placer)
+    public static List<ItemStorage> getListOfStackForEntityInfo(final NBTTagCompound entityData, final World world, final Entity placer)
     {
-        if (entityInfo != null)
+        if (entityData != null)
         {
-            final Entity entity = getEntityFromEntityInfoOrNull(entityInfo, world);
-
+            final Entity entity = getEntityFromEntityInfoOrNull(entityData, world);
             if (entity != null)
             {
+                if (EntityUtils.isEntityAtPosition(entity, world, placer))
+                {
+                    return Collections.emptyList();
+                }
                 return getListOfStackForEntity(entity, placer);
             }
         }
@@ -194,37 +209,56 @@ public final class ItemStackUtils
 
     /**
      * Adds entities to the builder building if he needs it.
+     *
+     * @param entityData the entity info object.
+     * @param world      the world.
+     * @param placer     the entity placer.
+     * @return a list of stacks.
+     */
+    public static List<ItemStorage> getListOfStackForEntityInfo(final NBTTagCompound entityData, final World world, final AbstractEntityCitizen placer)
+    {
+        if (placer instanceof Entity)
+        {
+            return getListOfStackForEntityInfo(entityData, world, (Entity) placer);
+        }
+
+        return Lists.newArrayList();
+    }
+
+    /**
+     * Adds entities to the builder building if he needs it.
+     *
      * @param entity the entity object.
      * @param placer the entity placer.
      * @return a list of stacks.
      */
-    public static List<ItemStack> getListOfStackForEntity(final Entity entity, final Entity placer)
+    public static List<ItemStorage> getListOfStackForEntity(final Entity entity, final Entity placer)
     {
         if (entity != null)
         {
-            final List<ItemStack> request = new ArrayList<>();
+            final List<ItemStorage> request = new ArrayList<>();
             if (entity instanceof EntityItemFrame)
             {
                 final ItemStack stack = ((EntityItemFrame) entity).getDisplayedItem();
                 if (!ItemStackUtils.isEmpty(stack))
                 {
                     ItemStackUtils.setSize(stack, 1);
-                    request.add(stack);
+                    request.add(new ItemStorage(stack));
                 }
-                request.add(new ItemStack(Items.ITEM_FRAME, 1));
+                request.add(new ItemStorage(new ItemStack(Items.ITEM_FRAME, 1)));
             }
             else if (entity instanceof EntityArmorStand)
             {
-                request.add(entity.getPickedResult(new RayTraceResult(placer)));
-                entity.getArmorInventoryList().forEach(request::add);
-                entity.getHeldEquipment().forEach(request::add);
+                request.add(new ItemStorage(entity.getPickedResult(new RayTraceResult(placer))));
+                entity.getArmorInventoryList().forEach(item -> request.add(new ItemStorage(item)));
+                entity.getHeldEquipment().forEach(item -> request.add(new ItemStorage(item)));
             }
             else if (!(entity instanceof EntityMob))
             {
-                request.add(entity.getPickedResult(new RayTraceResult(placer)));
+                request.add(new ItemStorage(entity.getPickedResult(new RayTraceResult(placer))));
             }
 
-            return request;
+            return request.stream().filter(stack -> !stack.getItemStack().isEmpty()).collect(Collectors.toList());
         }
         return Collections.emptyList();
     }
@@ -309,9 +343,9 @@ public final class ItemStackUtils
             }
         }
         else if (ToolType.HELMET.equals(toolType)
-                || ToolType.BOOTS.equals(toolType)
-                || ToolType.CHESTPLATE.equals(toolType)
-                || ToolType.LEGGINGS.equals(toolType))
+                   || ToolType.BOOTS.equals(toolType)
+                   || ToolType.CHESTPLATE.equals(toolType)
+                   || ToolType.LEGGINGS.equals(toolType))
         {
             if (stack.getItem() instanceof ItemArmor)
             {
@@ -413,6 +447,7 @@ public final class ItemStackUtils
 
     /**
      * Check if an itemStack is a decorative item for the decoration step of the structure placement.
+     *
      * @param stack the itemStack to test.
      * @return true if so.
      */
@@ -508,7 +543,7 @@ public final class ItemStackUtils
                 }
             }
         }
-        return maxLevel;
+        return Math.max(maxLevel - 1, 0);
     }
 
     /**
@@ -540,7 +575,6 @@ public final class ItemStackUtils
         }
         return fortune;
     }
-
 
     public static boolean hasSilkTouch(@Nullable final ItemStack tool)
     {
@@ -685,6 +719,11 @@ public final class ItemStackUtils
     @NotNull
     public static Boolean compareItemStacksIgnoreStackSize(final ItemStack itemStack1, final ItemStack itemStack2, final boolean matchMeta, final boolean matchNBT)
     {
+        if (isEmpty(itemStack1) && isEmpty(itemStack2))
+        {
+            return true;
+        }
+
         if (!isEmpty(itemStack1) &&
               !isEmpty(itemStack2) &&
               itemStack1.getItem() == itemStack2.getItem() &&
@@ -706,8 +745,9 @@ public final class ItemStackUtils
 
     /**
      * Method to check if a stack is in a list of stacks.
+     *
      * @param stacks the list of stacks.
-     * @param stack the stack.
+     * @param stack  the stack.
      * @return true if so.
      */
     public static boolean compareItemStackListIgnoreStackSize(final List<ItemStack> stacks, final ItemStack stack)
@@ -717,10 +757,11 @@ public final class ItemStackUtils
 
     /**
      * Method to check if a stack is in a list of stacks.
-     * @param stacks the list of stacks.
-     * @param stack the stack.
+     *
+     * @param stacks    the list of stacks.
+     * @param stack     the stack.
      * @param matchMeta if meta has to match.
-     * @param matchNBT if nbt has to match.
+     * @param matchNBT  if nbt has to match.
      * @return true if so.
      */
     public static boolean compareItemStackListIgnoreStackSize(final List<ItemStack> stacks, final ItemStack stack, final boolean matchMeta, final boolean matchNBT)
@@ -773,14 +814,15 @@ public final class ItemStackUtils
 
     /**
      * Check if the itemStack is some preferrable type of fuel.
+     *
      * @param stack the itemStack to test.
      * @return true if so.
      */
     public boolean isPreferrableFuel(@NotNull final ItemStack stack)
     {
         return stack.isItemEqualIgnoreDurability(new ItemStack(Items.COAL))
-                || stack.isItemEqualIgnoreDurability(new ItemStack(Blocks.LOG))
-                || stack.isItemEqualIgnoreDurability(new ItemStack(Blocks.LOG2));
+                 || stack.isItemEqualIgnoreDurability(new ItemStack(Blocks.LOG))
+                 || stack.isItemEqualIgnoreDurability(new ItemStack(Blocks.LOG2));
     }
 
     /**
@@ -808,6 +850,7 @@ public final class ItemStackUtils
 
     /**
      * Check if the furnace has smeltable in it and fuel empty.
+     *
      * @param entity the furnace.
      * @return true if so.
      */
@@ -819,6 +862,7 @@ public final class ItemStackUtils
 
     /**
      * Check if the furnace has smeltable in it and fuel empty.
+     *
      * @param entity the furnace.
      * @return true if so.
      */
@@ -830,6 +874,7 @@ public final class ItemStackUtils
 
     /**
      * Check if the furnace has fuel in it and smeltable empty.
+     *
      * @param entity the furnace.
      * @return true if so.
      */

@@ -1,5 +1,6 @@
 package com.minecolonies.coremod.client.gui;
 
+import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.ItemStackUtils;
 import com.minecolonies.api.util.Log;
@@ -12,9 +13,8 @@ import com.minecolonies.blockout.controls.Label;
 import com.minecolonies.blockout.views.ScrollingList;
 import com.minecolonies.blockout.views.SwitchView;
 import com.minecolonies.coremod.MineColonies;
-import com.minecolonies.coremod.colony.buildings.workerbuildings.BuildingBuilder;
 import com.minecolonies.coremod.colony.buildings.utils.BuildingBuilderResource;
-import com.minecolonies.coremod.colony.buildings.views.AbstractBuildingView;
+import com.minecolonies.coremod.colony.buildings.workerbuildings.BuildingBuilder;
 import com.minecolonies.coremod.network.messages.MarkBuildingDirtyMessage;
 import com.minecolonies.coremod.network.messages.TransferItemsRequestMessage;
 import net.minecraft.entity.player.InventoryPlayer;
@@ -39,7 +39,10 @@ public class WindowHutBuilder extends AbstractWindowWorkerBuilding<BuildingBuild
     public static final int DARKGREEN = Color.getByName("darkgreen", 0);
     public static final int BLACK     = Color.getByName("black", 0);
 
-    private final BuildingBuilder.View builder;
+    /**
+     * Current Building view
+     */
+    private IBuildingView builder;
 
     /**
      * List of resources needed.
@@ -65,9 +68,10 @@ public class WindowHutBuilder extends AbstractWindowWorkerBuilding<BuildingBuild
      */
     private void pullResourcesFromHut()
     {
-        final AbstractBuildingView newView = builder.getColony().getBuilding(builder.getID());
-        if (newView instanceof BuildingBuilder.View)
+        final IBuildingView newView = builder.getColony().getBuilding(builder.getID());
+        if (newView instanceof BuildingBuilder.View && newView != builder)
         {
+            builder = newView;
             final BuildingBuilder.View updatedView = (BuildingBuilder.View) newView;
             final InventoryPlayer inventory = this.mc.player.inventory;
             final boolean isCreative = this.mc.player.capabilities.isCreativeMode;
@@ -84,8 +88,8 @@ public class WindowHutBuilder extends AbstractWindowWorkerBuilding<BuildingBuild
                 else
                 {
                     amountToSet =
-                            InventoryUtils.getItemCountInItemHandler(new InvWrapper(inventory),
-                                    stack -> !ItemStackUtils.isEmpty(stack) && stack.isItemEqual(resource.getItemStack()));
+                      InventoryUtils.getItemCountInItemHandler(new InvWrapper(inventory),
+                        stack -> !ItemStackUtils.isEmpty(stack) && stack.isItemEqual(resource.getItemStack()));
                 }
                 resource.setPlayerAmount(amountToSet);
             }
@@ -184,7 +188,7 @@ public class WindowHutBuilder extends AbstractWindowWorkerBuilding<BuildingBuild
             resourceMissingLabel.setLabelText("");
         }
 
-        neededLabel.setLabelText(Integer.toString(resource.getAvailable()) + " / " + Integer.toString(resource.getAmount()));
+        neededLabel.setLabelText(resource.getAvailable() + " / " + resource.getAmount());
         rowPane.findPaneOfTypeByID(RESOURCE_ID, Label.class).setLabelText(Integer.toString(index));
         rowPane.findPaneOfTypeByID(RESOURCE_QUANTITY_MISSING, Label.class).setLabelText(Integer.toString(resource.getAmount() - resource.getAvailable()));
 
@@ -226,7 +230,7 @@ public class WindowHutBuilder extends AbstractWindowWorkerBuilding<BuildingBuild
     private void transferItems(@NotNull final Button button)
     {
         final Pane pane = button.getParent();
-
+        button.disable();
         final Label idLabel = pane.findPaneOfTypeByID(RESOURCE_ID, Label.class);
         final int index = Integer.parseInt(idLabel.getLabelText());
         final BuildingBuilderResource res = resources.get(index);
@@ -238,10 +242,14 @@ public class WindowHutBuilder extends AbstractWindowWorkerBuilding<BuildingBuild
         {
             // The itemStack size should not be greater than itemStack.getMaxStackSize, We send 1 instead
             // and use quantity for the size
-            @NotNull final ItemStack itemStack = new ItemStack(res.getItem(), 1, res.getDamageValue());
-            itemStack.setTagCompound(res.getItemStack().getTagCompound());
+            @NotNull final ItemStack itemStack = res.getItemStack().copy();
+            itemStack.setCount(1);
             final Label quantityLabel = pane.findPaneOfTypeByID(RESOURCE_QUANTITY_MISSING, Label.class);
             final int quantity = Integer.parseInt(quantityLabel.getLabelText());
+            final int needed = res.getAmount() - res.getAvailable();
+            res.setAvailable(Math.min(res.getAmount(), res.getAvailable() + res.getPlayerAmount()));
+            res.setPlayerAmount(Math.max(0, res.getPlayerAmount() - needed));
+            resources.sort(new BuildingBuilderResource.ResourceComparator());
             MineColonies.getNetwork().sendToServer(new TransferItemsRequestMessage(this.building, itemStack, quantity, true));
         }
     }

@@ -1,19 +1,24 @@
 package com.minecolonies.coremod.colony.jobs;
 
 import com.google.common.collect.ImmutableList;
+import com.minecolonies.api.client.render.modeltype.BipedModelType;
+import com.minecolonies.api.colony.ICitizenData;
+import com.minecolonies.api.colony.jobs.ModJobs;
+import com.minecolonies.api.colony.jobs.registry.JobEntry;
 import com.minecolonies.api.colony.requestsystem.StandardFactoryController;
 import com.minecolonies.api.colony.requestsystem.data.IRequestSystemDeliveryManJobDataStore;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.request.RequestState;
 import com.minecolonies.api.colony.requestsystem.requestable.Delivery;
+import com.minecolonies.api.colony.requestsystem.requestable.IDeliverable;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
+import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
+import com.minecolonies.api.sounds.DeliverymanSounds;
 import com.minecolonies.api.util.constant.NbtTagConstants;
 import com.minecolonies.api.util.constant.TypeConstants;
-import com.minecolonies.coremod.client.render.RenderBipedCitizen;
-import com.minecolonies.coremod.colony.CitizenData;
 import com.minecolonies.coremod.entity.ai.basic.AbstractAISkeleton;
 import com.minecolonies.coremod.entity.ai.citizen.deliveryman.EntityAIWorkDeliveryman;
-import com.minecolonies.coremod.sounds.DeliverymanSounds;
+import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.SoundEvent;
 import org.jetbrains.annotations.NotNull;
@@ -22,6 +27,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.LinkedList;
 import java.util.List;
 
+import static com.minecolonies.api.util.constant.BuildingConstants.TAG_ACTIVE;
+import static com.minecolonies.api.util.constant.CitizenConstants.BASE_MOVEMENT_SPEED;
 import static com.minecolonies.api.util.constant.Suppression.UNCHECKED;
 
 /**
@@ -32,11 +39,21 @@ public class JobDeliveryman extends AbstractJob
     private IToken<?> rsDataStoreToken;
 
     /**
+     * Walking speed bonus per level
+     */
+    public static final double BONUS_SPEED_PER_LEVEL = 0.003;
+
+    /**
+     * If the dman is currently active.
+     */
+    private boolean active = false;
+
+    /**
      * Instantiates the job for the deliveryman.
      *
      * @param entity the citizen who becomes a deliveryman
      */
-    public JobDeliveryman(final CitizenData entity)
+    public JobDeliveryman(final ICitizenData entity)
     {
         super(entity);
         setupRsDataStore();
@@ -56,18 +73,21 @@ public class JobDeliveryman extends AbstractJob
     }
 
     @Override
-    public void readFromNBT(@NotNull final NBTTagCompound compound)
+    public void onLevelUp(final int newLevel)
     {
-        super.readFromNBT(compound);
+        if (getCitizen().getCitizenEntity().isPresent())
+        {
+            final AbstractEntityCitizen worker = getCitizen().getCitizenEntity().get();
+            worker.getEntityAttribute(SharedMonsterAttributes.MOVEMENT_SPEED)
+              .setBaseValue(
+                BASE_MOVEMENT_SPEED + (newLevel > 50 ? 50 : newLevel) * BONUS_SPEED_PER_LEVEL);
+        }
+    }
 
-        if(compound.hasKey(NbtTagConstants.TAG_RS_DMANJOB_DATASTORE))
-        {
-            rsDataStoreToken = StandardFactoryController.getInstance().deserialize(compound.getCompoundTag(NbtTagConstants.TAG_RS_DMANJOB_DATASTORE));
-        }
-        else
-        {
-            setupRsDataStore();
-        }
+    @Override
+    public JobEntry getJobRegistryEntry()
+    {
+        return ModJobs.delivery;
     }
 
     @NotNull
@@ -79,16 +99,35 @@ public class JobDeliveryman extends AbstractJob
 
     @NotNull
     @Override
-    public RenderBipedCitizen.Model getModel()
+    public BipedModelType getModel()
     {
-        return RenderBipedCitizen.Model.DELIVERYMAN;
+        return BipedModelType.DELIVERYMAN;
     }
 
     @Override
-    public void writeToNBT(@NotNull final NBTTagCompound compound)
+    public NBTTagCompound serializeNBT()
     {
-        super.writeToNBT(compound);
+        final NBTTagCompound compound = super.serializeNBT();
         compound.setTag(NbtTagConstants.TAG_RS_DMANJOB_DATASTORE, StandardFactoryController.getInstance().serialize(rsDataStoreToken));
+        compound.setBoolean(TAG_ACTIVE, this.active);
+
+        return compound;
+    }
+
+    @Override
+    public void deserializeNBT(final NBTTagCompound compound)
+    {
+        super.deserializeNBT(compound);
+
+        if(compound.hasKey(NbtTagConstants.TAG_RS_DMANJOB_DATASTORE))
+        {
+            rsDataStoreToken = StandardFactoryController.getInstance().deserialize(compound.getCompoundTag(NbtTagConstants.TAG_RS_DMANJOB_DATASTORE));
+        }
+        else
+        {
+            setupRsDataStore();
+        }
+        this.active = compound.getBoolean(TAG_ACTIVE);
     }
 
     /**
@@ -194,9 +233,13 @@ public class JobDeliveryman extends AbstractJob
         }
 
         this.setReturning(true);
-        final IToken<?> current = getTaskQueueFromDataStore().removeFirst();
+        final IToken<?> current = getTaskQueueFromDataStore().getFirst();
 
-        getColony().getRequestManager().updateRequestState(current, successful ? RequestState.COMPLETED : RequestState.CANCELLED);
+        getColony().getRequestManager().updateRequestState(current, successful ? RequestState.RESOLVED : RequestState.CANCELLED);
+
+        //Just to be sure lets delete them!
+        if (!getTaskQueueFromDataStore().isEmpty() && current == getTaskQueueFromDataStore().getFirst())
+            getTaskQueueFromDataStore().removeFirst();
     }
 
     /**
@@ -246,5 +289,36 @@ public class JobDeliveryman extends AbstractJob
     public void setReturning(final boolean returning)
     {
         getDataStore().setReturning(returning);
+    }
+
+    /**
+     * Set if the dman can currently work.
+     * @param b true if so.
+     */
+    public void setActive(final boolean b)
+    {
+        if (!b && active)
+        {
+            for (final IToken<?> t : getTaskQueue())
+            {
+                getColony().getRequestManager().updateRequestState(t,  RequestState.CANCELLED);
+            }
+        }
+        else if (!active && b)
+        {
+            this.active = b;
+            final ImmutableList<IToken<?>> tokenList = getColony().getRequestManager().getPlayerResolver().getAllAssignedRequests();
+            getColony().getRequestManager()
+              .onColonyUpdate(request -> tokenList.contains(request.getId()));
+        }
+        this.active = b;
+    }
+
+    /**
+     * Check if the dman can currently accept requests.
+     */
+    public boolean isActive()
+    {
+        return this.active;
     }
 }

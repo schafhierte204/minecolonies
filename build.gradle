@@ -13,12 +13,19 @@ buildscript {
 }
 
 plugins {
-    id "com.matthewprenger.cursegradle" version "1.0.9"
+    id "com.matthewprenger.cursegradle" version "1.1.0"
 }
 repositories {
     maven {
         name 'LDTTeam - Modding'
         url 'https://ldtteam.jfrog.io/ldtteam/modding/'
+    }
+    maven {
+        name = "CurseForge"
+        url = "https://minecraft.curseforge.com/api/maven/"
+    }
+    flatDir {
+        dirs 'libs'
     }
 }
 
@@ -84,10 +91,12 @@ configurations {
 }
 
 dependencies {
-    contained "com.structurize:structurize:${config.minecraft_version}-${config.structurize_version}"
-    deobfCompile "com.structurize:structurize:${config.minecraft_version}-${config.structurize_version}"
+    compileOnly "inventory-tweaks:InventoryTweaks:${config.inventorytweaks_version}:api"
 
-    compile "mod.chiselsandbits:chiselsandbits:${config.c_b_version}"
+    contained "com.ldtteam:structurize:${config.minecraft_version}-${config.structurize_version}"
+    deobfCompile "com.ldtteam:structurize:${config.minecraft_version}-${config.structurize_version}"
+
+    compile "mod.chiselsandbits:chiselsandbits:${config.c_b_version}:api"
     deobfCompile "slimeknights.mantle:Mantle:1.12-${config.mantle_version}"
     deobfCompile "slimeknights:TConstruct:1.12.2-${config.tinker_version}"
     deobfCompile "com.ferreusveritas.dynamictrees:DynamicTrees:1.12.2-${config.dynamic_tree_version}"
@@ -101,7 +110,7 @@ dependencies {
 
     testCompile sourceSets.blockOut.output
 
-    testCompile 'junit:junit:4.11'
+    testCompile 'junit:junit:4.12'
     testCompile "org.mockito:mockito-core:1.+"
     testCompile group: 'org.powermock', name: 'powermock-module-junit4', version: '1.6.5'
     testCompile group: 'org.powermock', name: 'powermock-api-mockito', version: '1.6.5'

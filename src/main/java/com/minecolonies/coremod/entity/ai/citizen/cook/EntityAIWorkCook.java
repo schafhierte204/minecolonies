@@ -1,35 +1,35 @@
 package com.minecolonies.coremod.entity.ai.citizen.cook;
 
+import com.google.common.reflect.TypeToken;
+import com.minecolonies.api.colony.interactionhandling.TranslationTextComponent;
 import com.minecolonies.api.colony.requestsystem.requestable.Food;
 import com.minecolonies.api.colony.requestsystem.requestable.IRequestable;
+import com.minecolonies.api.entity.ai.statemachine.AITarget;
+import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
+import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.ItemStackUtils;
 import com.minecolonies.api.util.LanguageHandler;
-import com.minecolonies.api.util.constant.CitizenConstants;
 import com.minecolonies.api.util.constant.TranslationConstants;
 import com.minecolonies.coremod.colony.buildings.workerbuildings.BuildingCook;
 import com.minecolonies.coremod.colony.jobs.JobCook;
-import com.minecolonies.coremod.entity.EntityCitizen;
 import com.minecolonies.coremod.entity.ai.basic.AbstractEntityAIUsesFurnace;
-import com.minecolonies.coremod.entity.ai.statemachine.AITarget;
-import com.minecolonies.coremod.entity.ai.statemachine.states.IAIState;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntityFurnace;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.wrapper.InvWrapper;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
+import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
 import static com.minecolonies.api.util.constant.Constants.*;
-import static com.minecolonies.api.util.constant.TranslationConstants.HUNGRY_INV_FULL;
-import static com.minecolonies.coremod.entity.ai.statemachine.states.AIWorkerState.*;
 
 /**
  * Cook AI class.
@@ -47,7 +47,7 @@ public class EntityAIWorkCook extends AbstractEntityAIUsesFurnace<JobCook>
     private static final int INTELLIGENCE_MULTIPLIER = 1;
 
     /**
-     * The amount of food which should be served to the woker.
+     * The amount of food which should be served to the worker.
      */
     public static final int AMOUNT_OF_FOOD_TO_SERVE = 2;
 
@@ -64,7 +64,7 @@ public class EntityAIWorkCook extends AbstractEntityAIUsesFurnace<JobCook>
     /**
      * The citizen the worker is currently trying to serve.
      */
-    private final List<EntityCitizen> citizenToServe = new ArrayList<>();
+    private final List<AbstractEntityCitizen> citizenToServe = new ArrayList<>();
 
     /**
      * The citizen the worker is currently trying to serve.
@@ -86,7 +86,7 @@ public class EntityAIWorkCook extends AbstractEntityAIUsesFurnace<JobCook>
     {
         super(job);
         super.registerTargets(
-          new AITarget(COOK_SERVE_FOOD_TO_CITIZEN, this::serveFoodToCitizen)
+          new AITarget(COOK_SERVE_FOOD_TO_CITIZEN, this::serveFoodToCitizen, SERVE_DELAY)
         );
         worker.getCitizenExperienceHandler().setSkillModifier(CHARISMA_MULTIPLIER * worker.getCitizenData().getCharisma()
                 + INTELLIGENCE_MULTIPLIER * worker.getCitizenData().getIntelligence());
@@ -125,6 +125,15 @@ public class EntityAIWorkCook extends AbstractEntityAIUsesFurnace<JobCook>
         return InventoryUtils.getItemCountInProvider(getOwnBuilding(), ItemStackUtils.ISFOOD) > Math.max(1, getOwnBuilding().getBuildingLevel() * getOwnBuilding().getBuildingLevel()) * SLOT_PER_LINE;
     }
 
+    @Override
+    public void requestSmeltable()
+    {
+        if (!getOwnBuilding().hasWorkerOpenRequestsOfType(worker.getCitizenData(), TypeToken.of(getSmeltAbleClass().getClass())))
+        {
+            worker.getCitizenData().createRequestAsync(getSmeltAbleClass());
+        }
+    }
+
     /**
      * Serve food to customer
      *
@@ -141,7 +150,7 @@ public class EntityAIWorkCook extends AbstractEntityAIUsesFurnace<JobCook>
      */
     private IAIState serveFoodToCitizen()
     {
-        worker.getCitizenStatusHandler().setLatestStatus(new TextComponentTranslation(TranslationConstants.COM_MINECOLONIES_COREMOD_STATUS_SERVING));
+        worker.getCitizenStatusHandler().setLatestStatus(new TranslationTextComponent(TranslationConstants.COM_MINECOLONIES_COREMOD_STATUS_SERVING));
 
         if (citizenToServe.isEmpty() && playerToServe.isEmpty())
         {
@@ -177,7 +186,6 @@ public class EntityAIWorkCook extends AbstractEntityAIUsesFurnace<JobCook>
 
         if (InventoryUtils.isItemHandlerFull(handler))
         {
-            chatSpamFilter.talkWithoutSpam(HUNGRY_INV_FULL);
             removeFromQueue();
             setDelay(SERVE_DELAY);
             return getState();
@@ -187,6 +195,11 @@ public class EntityAIWorkCook extends AbstractEntityAIUsesFurnace<JobCook>
                 ItemStackUtils.CAN_EAT,
                 getOwnBuilding().getBuildingLevel() * AMOUNT_OF_FOOD_TO_SERVE, handler
                 );
+
+        if (!citizenToServe.isEmpty() && citizenToServe.get(0).getCitizenData() != null)
+        {
+            citizenToServe.get(0).getCitizenData().setJustAte(true);
+        }
 
         if (citizenToServe.isEmpty() && living instanceof EntityPlayer)
         {
@@ -233,8 +246,13 @@ public class EntityAIWorkCook extends AbstractEntityAIUsesFurnace<JobCook>
         }
 
         citizenToServe.clear();
-        final List<EntityCitizen> citizenList = world.getEntitiesWithinAABB(EntityCitizen.class,
-          range, cit -> !(cit.getCitizenJobHandler().getColonyJob() instanceof JobCook) && cit.getCitizenData() != null && cit.getCitizenData().getSaturation() <= CitizenConstants.AVERAGE_SATURATION);
+        final List<AbstractEntityCitizen> citizenList = world.getEntitiesWithinAABB(Entity.class, range)
+          .stream()
+                                                          .filter(e -> e instanceof AbstractEntityCitizen)
+                                                          .map(e -> (AbstractEntityCitizen) e)
+          .filter(cit -> !(cit.getCitizenJobHandler().getColonyJob() instanceof JobCook) && cit.shouldBeFed())
+          .collect(Collectors.toList());
+
         final List<EntityPlayer> playerList = world.getEntitiesWithinAABB(EntityPlayer.class,
           range, player -> player != null && player.getFoodStats().getFoodLevel() < LEVEL_TO_FEED_PLAYER);
 
@@ -246,6 +264,10 @@ public class EntityAIWorkCook extends AbstractEntityAIUsesFurnace<JobCook>
             if (InventoryUtils.hasItemInItemHandler(new InvWrapper(worker.getInventoryCitizen()), ItemStackUtils.CAN_EAT))
             {
                 return COOK_SERVE_FOOD_TO_CITIZEN;
+            }
+            else if (!InventoryUtils.hasItemInProvider(getOwnBuilding(), ItemStackUtils.CAN_EAT))
+            {
+                return START_WORKING;
             }
 
             needsCurrently = ItemStackUtils.CAN_EAT;

@@ -1,37 +1,43 @@
 package com.minecolonies.coremod.entity.ai.citizen.fisherman;
 
+import com.minecolonies.api.colony.interactionhandling.ChatPriority;
+import com.minecolonies.api.colony.interactionhandling.TranslationTextComponent;
+import com.minecolonies.api.configuration.Configurations;
+import com.minecolonies.api.entity.ai.statemachine.AITarget;
+import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
+import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
+import com.minecolonies.api.entity.pathfinding.WaterPathResult;
+import com.minecolonies.api.sounds.FishermanSounds;
 import com.minecolonies.api.util.InventoryUtils;
+import com.minecolonies.api.util.SoundUtils;
 import com.minecolonies.api.util.Utils;
 import com.minecolonies.api.util.constant.IToolType;
 import com.minecolonies.api.util.constant.ToolType;
 import com.minecolonies.coremod.colony.buildings.workerbuildings.BuildingFisherman;
+import com.minecolonies.coremod.colony.interactionhandling.StandardInteractionResponseHandler;
 import com.minecolonies.coremod.colony.jobs.JobFisherman;
-import com.minecolonies.coremod.entity.EntityCitizen;
 import com.minecolonies.coremod.entity.EntityFishHook;
 import com.minecolonies.coremod.entity.ai.basic.AbstractEntityAISkill;
-import com.minecolonies.coremod.entity.ai.statemachine.AITarget;
-import com.minecolonies.coremod.entity.ai.statemachine.states.IAIState;
-import com.minecolonies.coremod.entity.pathfinding.PathJobFindWater;
-import com.minecolonies.coremod.sounds.FishermanSounds;
-import com.minecolonies.coremod.util.SoundUtils;
 import com.minecolonies.coremod.util.WorkerUtil;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.init.SoundEvents;
 import net.minecraft.item.ItemFishingRod;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.SoundEvent;
-import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraftforge.items.wrapper.InvWrapper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Random;
 
+import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
+import static com.minecolonies.api.util.constant.Constants.ONE_HUNDRED_PERCENT;
+import static com.minecolonies.api.util.constant.Constants.TICKS_SECOND;
 import static com.minecolonies.api.util.constant.ToolLevelConstants.TOOL_LEVEL_WOOD_OR_GOLD;
-import static com.minecolonies.coremod.entity.ai.statemachine.states.AIWorkerState.*;
+import static com.minecolonies.api.util.constant.TranslationConstants.WATER_TOO_FAR;
 
 /**
  * Fisherman AI class.
@@ -120,27 +126,39 @@ public class EntityAIWorkFisherman extends AbstractEntityAISkill<JobFisherman>
      * Chance to play a specific fisherman sound.
      */
     private static final int    CHANCE_TO_PLAY_SOUND = 20;
+
+    /**
+     * Required level for sponge drop.
+     */
+    private static final int LEVEL_FOR_SPONGE        = 4;
+
     @NotNull
     private final        Random random               = new Random();
+
     /**
      * The number of executed adjusts of the fisherman's rotation.
      */
     private              int    executedRotations    = 0;
+
     /**
      * The PathResult when the fisherman searches water.
      */
     @Nullable
-    private PathJobFindWater.WaterPathResult pathResult;
+    private WaterPathResult pathResult;
+
+
     /**
      * The Previous PathResult when the fisherman already found water.
      */
     @Nullable
-    private PathJobFindWater.WaterPathResult lastPathResult;
+    private WaterPathResult lastPathResult;
+
     /**
      * The fishingSkill which directly influences the fisherman's chance to throw his rod.
      * May in the future also influence his luck/charisma.
      */
     private int fishingSkill = worker.getCitizenExperienceHandler().getLevel();
+
     /**
      * Connects the citizen with the fishingHook.
      */
@@ -157,13 +175,13 @@ public class EntityAIWorkFisherman extends AbstractEntityAISkill<JobFisherman>
     {
         super(job);
         super.registerTargets(
-          new AITarget(IDLE, START_WORKING),
-          new AITarget(START_WORKING, this::startWorkingAtOwnBuilding),
-          new AITarget(PREPARING, this::prepareForFishing),
-          new AITarget(FISHERMAN_CHECK_WATER, this::tryDifferentAngles),
-          new AITarget(FISHERMAN_SEARCHING_WATER, this::findWater),
-          new AITarget(FISHERMAN_WALKING_TO_WATER, this::getToWater),
-          new AITarget(FISHERMAN_START_FISHING, this::doFishing)
+          new AITarget(IDLE, START_WORKING, 1),
+          new AITarget(START_WORKING, this::startWorkingAtOwnBuilding, TICKS_SECOND),
+          new AITarget(PREPARING, this::prepareForFishing, TICKS_SECOND),
+          new AITarget(FISHERMAN_CHECK_WATER, this::tryDifferentAngles, 1),
+          new AITarget(FISHERMAN_SEARCHING_WATER, this::findWater, TICKS_SECOND),
+          new AITarget(FISHERMAN_WALKING_TO_WATER, this::getToWater, TICKS_SECOND),
+          new AITarget(FISHERMAN_START_FISHING, this::doFishing, TICKS_SECOND)
         );
         worker.getCitizenExperienceHandler().setSkillModifier(
           INTELLIGENCE_MULTIPLIER * worker.getCitizenData().getIntelligence()
@@ -300,7 +318,7 @@ public class EntityAIWorkFisherman extends AbstractEntityAISkill<JobFisherman>
         {
             return FISHERMAN_SEARCHING_WATER;
         }
-        worker.getCitizenStatusHandler().setLatestStatus(new TextComponentTranslation("com.minecolonies.coremod.status.goingtopond"));
+        worker.getCitizenStatusHandler().setLatestStatus(new TranslationTextComponent("com.minecolonies.coremod.status.goingtopond"));
 
         if (walkToWater())
         {
@@ -327,6 +345,8 @@ public class EntityAIWorkFisherman extends AbstractEntityAISkill<JobFisherman>
     @NotNull
     private IAIState tryDifferentAngles()
     {
+
+
         if (job.getWater() == null)
         {
             return FISHERMAN_SEARCHING_WATER;
@@ -338,6 +358,12 @@ public class EntityAIWorkFisherman extends AbstractEntityAISkill<JobFisherman>
             executedRotations = 0;
             return FISHERMAN_SEARCHING_WATER;
         }
+
+        if (world.getBlockState(worker.getPosition()).getMaterial().isLiquid())
+        {
+            return START_WORKING;
+        }
+
         //Try a different angle to throw the hook not that far
         WorkerUtil.faceBlock(job.getWater(), worker);
         executedRotations++;
@@ -352,7 +378,7 @@ public class EntityAIWorkFisherman extends AbstractEntityAISkill<JobFisherman>
      */
     private IAIState findWater()
     {
-        worker.getCitizenStatusHandler().setLatestStatus(new TextComponentTranslation("com.minecolonies.coremod.status.searchingwater"));
+        worker.getCitizenStatusHandler().setLatestStatus(new TranslationTextComponent("com.minecolonies.coremod.status.searchingwater"));
 
         //Reset executedRotations when fisherman searches a new Pond
         executedRotations = 0;
@@ -375,9 +401,12 @@ public class EntityAIWorkFisherman extends AbstractEntityAISkill<JobFisherman>
     {
         if (job.getPonds().isEmpty())
         {
-            if (lastPathResult != null && lastPathResult.isEmpty && !lastPathResult.isCancelled())
+            if ( ( pathResult != null && pathResult.failedToReachDestination() && lastPathResult == null )  || ( lastPathResult != null && lastPathResult.isEmpty && !lastPathResult.isCancelled()))
             {
-                chatSpamFilter.talkWithoutSpam("entity.fisherman.messageWaterTooFar");
+                if (worker.getCitizenData() != null)
+                {
+                    worker.getCitizenData().triggerInteraction(new StandardInteractionResponseHandler(new TranslationTextComponent(WATER_TOO_FAR), ChatPriority.IMPORTANT));
+                }
             }
 
             if (pathResult == null || !pathResult.isInProgress())
@@ -439,7 +468,7 @@ public class EntityAIWorkFisherman extends AbstractEntityAISkill<JobFisherman>
     @Nullable
     private IAIState doFishing()
     {
-        worker.getCitizenStatusHandler().setLatestStatus(new TextComponentTranslation("com.minecolonies.coremod.status.fishing"));
+        worker.getCitizenStatusHandler().setLatestStatus(new TranslationTextComponent("com.minecolonies.coremod.status.fishing"));
 
         @Nullable final IAIState notReadyState = isReadyToFish();
         if (notReadyState != null)
@@ -451,6 +480,11 @@ public class EntityAIWorkFisherman extends AbstractEntityAISkill<JobFisherman>
         {
             this.getOwnBuilding().getColony().getStatsManager().incrementStatistic("fish");
             playCaughtFishSound();
+            if (getOwnBuilding().getBuildingLevel() > LEVEL_FOR_SPONGE && random.nextInt(ONE_HUNDRED_PERCENT) < Configurations.gameplay.fisherSpongeChance)
+            {
+                InventoryUtils.addItemStackToItemHandler(new InvWrapper(worker.getInventoryCitizen()), new ItemStack(Blocks.SPONGE));
+            }
+
             if (random.nextDouble() < CHANCE_NEW_POND)
             {
                 job.setWater(null);
@@ -511,7 +545,7 @@ public class EntityAIWorkFisherman extends AbstractEntityAISkill<JobFisherman>
         if (!world.isRemote)
         {
             WorkerUtil.faceBlock(job.getWater(), worker);
-            world.playSound((EntityPlayer) null,
+            world.playSound(null,
               this.worker.getPosition(),
               SoundEvents.ENTITY_BOBBER_THROW,
               SoundCategory.NEUTRAL,
@@ -560,7 +594,7 @@ public class EntityAIWorkFisherman extends AbstractEntityAISkill<JobFisherman>
     private IAIState isReadyToFish()
     {
         //We really do have our Rod in our inventory?
-        if (!worker.getCitizenInventoryHandler().hasItemInInventory(Items.FISHING_ROD, -1))
+        if (getRodSlot() == -1)
         {
             return PREPARING;
         }
@@ -572,7 +606,7 @@ public class EntityAIWorkFisherman extends AbstractEntityAISkill<JobFisherman>
             return FISHERMAN_SEARCHING_WATER;
         }
         //If there is no close water, try to move closer
-        if (!Utils.isBlockInRange(world, Blocks.WATER, (int) worker.posX, (int) worker.posY, (int) worker.posZ, MIN_DISTANCE_TO_WATER))
+        if (!Utils.isBlockInRange(world, Blocks.WATER, (int) worker.getPosX(), (int) worker.getPosY(), (int) worker.getPosZ(), MIN_DISTANCE_TO_WATER))
         {
             return FISHERMAN_WALKING_TO_WATER;
         }
@@ -623,7 +657,7 @@ public class EntityAIWorkFisherman extends AbstractEntityAISkill<JobFisherman>
         }
 
         worker.setCanPickUpLoot(true);
-        worker.captureDrops = true;
+        worker.setCanCaptureDrops(true);
         retrieveRod();
         fishingSkill = worker.getCitizenExperienceHandler().getLevel();
         return true;
@@ -647,7 +681,7 @@ public class EntityAIWorkFisherman extends AbstractEntityAISkill<JobFisherman>
      * @return citizen object.
      */
     @Nullable
-    public EntityCitizen getCitizen()
+    public AbstractEntityCitizen getCitizen()
     {
         return worker;
     }

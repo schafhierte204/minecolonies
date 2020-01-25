@@ -1,22 +1,22 @@
 package com.minecolonies.coremod.entity.ai.citizen.trainingcamps;
 
+import com.minecolonies.api.entity.ai.statemachine.AITarget;
+import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
 import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.coremod.colony.jobs.AbstractJob;
 import com.minecolonies.coremod.entity.ai.basic.AbstractEntityAIBasic;
-import com.minecolonies.coremod.entity.ai.statemachine.AITarget;
-import com.minecolonies.coremod.entity.ai.statemachine.states.IAIState;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import org.jetbrains.annotations.NotNull;
 
-import static com.minecolonies.coremod.entity.ai.statemachine.states.AIWorkerState.*;
+import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
 
 /**
  * Abstract class for all training AIs.
  */
 @SuppressWarnings("squid:MaximumInheritanceDepth")
-public abstract class AbstractEntityAITraining<J extends AbstractJob> extends AbstractEntityAIBasic<AbstractJob>
+public abstract class AbstractEntityAITraining<J extends AbstractJob> extends AbstractEntityAIBasic<J>
 {
     /**
      * Percentual chance for target search being chosen as target job.
@@ -54,16 +54,16 @@ public abstract class AbstractEntityAITraining<J extends AbstractJob> extends Ab
      *
      * @param job the job to fulfill
      */
-    public AbstractEntityAITraining(@NotNull final AbstractJob job)
+    public AbstractEntityAITraining(@NotNull final J job)
     {
         //Tasks: Wander around, Find shooting position, go to shooting position, shoot, verify shot
         super(job);
         super.registerTargets(
-          new AITarget(IDLE, () -> START_WORKING),
-          new AITarget(START_WORKING, () -> DECIDE),
-          new AITarget(DECIDE, this::decide),
-          new AITarget(TRAINING_WANDER, this::wander),
-          new AITarget(GO_TO_TARGET, this::pathToTarget)
+          new AITarget(IDLE, () -> START_WORKING, 1),
+          new AITarget(START_WORKING, () -> DECIDE, 1),
+          new AITarget(DECIDE, this::decide, 1),
+          new AITarget(TRAINING_WANDER, this::wander, 1),
+          new AITarget(GO_TO_TARGET, this::pathToTarget, 1)
         );
         worker.setCanPickUpLoot(true);
     }
@@ -138,7 +138,7 @@ public abstract class AbstractEntityAITraining<J extends AbstractJob> extends Ab
      */
     private BlockPos getWanderPosition()
     {
-        final BlockPos pos = BlockPosUtil.getRandomPosition(world, worker.getPosition(), getOwnBuilding().getLocation());
+        final BlockPos pos = BlockPosUtil.getRandomPosition(world, worker.getPosition(), getOwnBuilding().getPosition());
 
         if (range == null)
         {
@@ -150,7 +150,7 @@ public abstract class AbstractEntityAITraining<J extends AbstractJob> extends Ab
             return pos;
         }
 
-        return getOwnBuilding().getLocation();
+        return getOwnBuilding().getPosition();
     }
 
     /**

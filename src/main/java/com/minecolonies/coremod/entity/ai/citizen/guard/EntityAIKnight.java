@@ -3,13 +3,13 @@ package com.minecolonies.coremod.entity.ai.citizen.guard;
 import com.minecolonies.api.compatibility.tinkers.TinkersWeaponHelper;
 import com.minecolonies.api.configuration.Configurations;
 import com.minecolonies.api.entity.ai.citizen.guards.GuardGear;
+import com.minecolonies.api.entity.ai.statemachine.AITarget;
+import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.ItemStackUtils;
+import com.minecolonies.api.util.SoundUtils;
 import com.minecolonies.api.util.constant.ToolType;
 import com.minecolonies.coremod.colony.jobs.JobKnight;
-import com.minecolonies.coremod.entity.ai.statemachine.AITarget;
-import com.minecolonies.coremod.entity.ai.statemachine.states.IAIState;
-import com.minecolonies.coremod.util.SoundUtils;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Enchantments;
@@ -19,19 +19,24 @@ import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemSword;
 import net.minecraft.util.DamageSource;
+import net.minecraft.util.EntityDamageSource;
 import net.minecraft.util.EnumHand;
 import net.minecraftforge.items.wrapper.InvWrapper;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
+import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.GUARD_ATTACK_PHYSICAL;
+import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.GUARD_ATTACK_PROTECT;
 import static com.minecolonies.api.util.constant.GuardConstants.*;
-import static com.minecolonies.coremod.entity.ai.statemachine.states.AIWorkerState.GUARD_ATTACK_PHYSICAL;
-import static com.minecolonies.coremod.entity.ai.statemachine.states.AIWorkerState.GUARD_ATTACK_PROTECT;
 
 @SuppressWarnings("squid:MaximumInheritanceDepth")
 public class EntityAIKnight extends AbstractEntityAIGuard<JobKnight>
 {
+    /**
+     * Update interval for the guards attack ai
+     */
+    private final static int GUARD_ATTACK_INTERVAL = 8;
 
     /**
      * Creates the abstract part of the AI.
@@ -43,8 +48,8 @@ public class EntityAIKnight extends AbstractEntityAIGuard<JobKnight>
     {
         super(job);
         super.registerTargets(
-          new AITarget(GUARD_ATTACK_PROTECT, this::attackProtect),
-          new AITarget(GUARD_ATTACK_PHYSICAL, this::attackPhysical)
+          new AITarget(GUARD_ATTACK_PROTECT, this::attackProtect, GUARD_ATTACK_INTERVAL),
+          new AITarget(GUARD_ATTACK_PHYSICAL, this::attackPhysical, GUARD_ATTACK_INTERVAL)
         );
         toolsNeeded.add(ToolType.SWORD);
 
@@ -63,7 +68,7 @@ public class EntityAIKnight extends AbstractEntityAIGuard<JobKnight>
     @Override
     protected int getAttackRange()
     {
-        return (int) MAX_DISTANCE_FOR_ATTACK;
+        return MAX_DISTANCE_FOR_ATTACK;
     }
 
     @Override
@@ -89,11 +94,6 @@ public class EntityAIKnight extends AbstractEntityAIGuard<JobKnight>
     @Override
     protected int getAttackDelay()
     {
-        if (worker.getCitizenData() != null)
-        {
-            final int reload = KNIGHT_ATTACK_DELAY_BASE - worker.getCitizenData().getLevel();
-            return reload > PHYSICAL_ATTACK_DELAY_MIN ? reload : PHYSICAL_ATTACK_DELAY_MIN;
-        }
         return KNIGHT_ATTACK_DELAY_BASE;
     }
 
@@ -114,52 +114,55 @@ public class EntityAIKnight extends AbstractEntityAIGuard<JobKnight>
      */
     protected IAIState attackProtect()
     {
-        setDelay(2);
         final int shieldSlot = InventoryUtils.findFirstSlotInItemHandlerWith(new InvWrapper(getInventory()),
           Items.SHIELD,
           -1);
 
-        if (shieldSlot != -1
-              && target != null
-              && !target.isDead)
+        if (target != null && !target.isDead)
         {
-            worker.getCitizenItemHandler().setHeldItem(EnumHand.OFF_HAND, shieldSlot);
-            worker.setActiveHand(EnumHand.OFF_HAND);
+            if (shieldSlot != -1)
+            {
+                worker.getCitizenItemHandler().setHeldItem(EnumHand.OFF_HAND, shieldSlot);
+                worker.setActiveHand(EnumHand.OFF_HAND);
 
-            worker.faceEntity(target, (float) TURN_AROUND, (float) TURN_AROUND);
-            worker.getLookHelper().setLookPositionWithEntity(target, (float) TURN_AROUND, (float) TURN_AROUND);
-            worker.decreaseSaturationForContinuousAction();
+                worker.faceEntity(target, (float) TURN_AROUND, (float) TURN_AROUND);
+                worker.decreaseSaturationForContinuousAction();
+            }
         }
 
         return GUARD_ATTACK_PHYSICAL;
     }
 
     /**
-     * attackPhysical tries to launch an attack. Ticked every 4 Ticks
+     * attackPhysical tries to launch an attack. Ticked every 8 Ticks
      */
     protected IAIState attackPhysical()
     {
         final IAIState state = preAttackChecks();
         if (state != getState())
         {
+            worker.getNavigator().clearPath();
+            worker.getMoveHelper().strafe(0, 0);
             setDelay(STANDARD_DELAY);
             return state;
         }
 
+        moveInAttackPosition();
+        reduceAttackDelay(GUARD_ATTACK_INTERVAL);
         if (currentAttackDelay > 0)
         {
-            reduceAttackDelay(4);
             return GUARD_ATTACK_PROTECT;
         }
-        else
+
+        if (!isInAttackDistance(target.getPosition()))
         {
-            currentAttackDelay = getAttackDelay();
+            return getState();
         }
 
         if (getOwnBuilding() != null)
         {
+            currentAttackDelay = getAttackDelay();
             worker.faceEntity(target, (float) TURN_AROUND, (float) TURN_AROUND);
-            worker.getLookHelper().setLookPositionWithEntity(target, (float) TURN_AROUND, (float) TURN_AROUND);
 
             worker.swingArm(EnumHand.MAIN_HAND);
             worker.playSound(SoundEvents.ENTITY_PLAYER_ATTACK_SWEEP, (float) BASIC_VOLUME, (float) SoundUtils.getRandomPitch(worker.getRandom()));
@@ -171,7 +174,7 @@ public class EntityAIKnight extends AbstractEntityAIGuard<JobKnight>
                 damageToBeDealt *= 2;
             }
 
-            final DamageSource source = new DamageSource(worker.getName());
+            final DamageSource source = new EntityDamageSource(worker.getName(), worker);
             if (Configurations.gameplay.pvp_mode && target instanceof EntityPlayer)
             {
                 source.setDamageBypassesArmor();
@@ -204,7 +207,7 @@ public class EntityAIKnight extends AbstractEntityAIGuard<JobKnight>
             {
                 if (heldItem.getItem() instanceof ItemSword)
                 {
-                    addDmg += ((ItemSword) heldItem.getItem()).getAttackDamage();
+                    addDmg += ((ItemSword) heldItem.getItem()).getAttackDamage() + BASE_PHYSICAL_DAMAGE;
                 }
                 else
                 {
@@ -214,8 +217,14 @@ public class EntityAIKnight extends AbstractEntityAIGuard<JobKnight>
             }
 
             addDmg += getLevelDamage();
-            return (int) ((BASE_PHYSICAL_DAMAGE + addDmg) * Configurations.gameplay.rangerDamageMult);
+            return (int) ((addDmg) * Configurations.gameplay.knightDamageMult);
         }
         return (int) (BASE_PHYSICAL_DAMAGE * Configurations.gameplay.knightDamageMult);
+    }
+
+    @Override
+    public void moveInAttackPosition()
+    {
+        worker.getNavigator().tryMoveToEntityLiving(target, getCombatMovementSpeed());
     }
 }

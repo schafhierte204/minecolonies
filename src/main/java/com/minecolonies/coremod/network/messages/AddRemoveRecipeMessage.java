@@ -1,15 +1,18 @@
 package com.minecolonies.coremod.network.messages;
 
+import com.minecolonies.api.advancements.AdvancementTriggers;
+import com.minecolonies.api.colony.IColony;
+import com.minecolonies.api.colony.IColonyManager;
+import com.minecolonies.api.colony.buildings.IBuilding;
+import com.minecolonies.api.colony.buildings.IBuildingWorker;
 import com.minecolonies.api.colony.permissions.Action;
 import com.minecolonies.api.colony.requestsystem.StandardFactoryController;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.crafting.IRecipeStorage;
+import com.minecolonies.api.util.AdvancementUtils;
 import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.LanguageHandler;
 import com.minecolonies.api.util.constant.TypeConstants;
-import com.minecolonies.coremod.colony.Colony;
-import com.minecolonies.coremod.colony.ColonyManager;
-import com.minecolonies.coremod.colony.buildings.AbstractBuilding;
 import com.minecolonies.coremod.colony.buildings.AbstractBuildingWorker;
 import com.minecolonies.coremod.colony.buildings.views.AbstractBuildingView;
 import io.netty.buffer.ByteBuf;
@@ -89,7 +92,7 @@ public class AddRemoveRecipeMessage extends AbstractMessage<AddRemoveRecipeMessa
         }
         this.remove = remove;
         this.dimension = building.getColony().getDimension();
-        this.building = building.getLocation();
+        this.building = building.getPosition();
         this.colonyId = building.getColony().getID();
     }
 
@@ -112,7 +115,7 @@ public class AddRemoveRecipeMessage extends AbstractMessage<AddRemoveRecipeMessa
         super();
         this.storage = data;
         this.remove = remove;
-        this.building = building.getLocation();
+        this.building = building.getPosition();
         this.colonyId = building.getColony().getID();
         this.dimension = building.getColony().getDimension();
     }
@@ -157,29 +160,30 @@ public class AddRemoveRecipeMessage extends AbstractMessage<AddRemoveRecipeMessa
     @Override
     public void messageOnServerThread(final AddRemoveRecipeMessage message, final EntityPlayerMP player)
     {
-        final Colony colony = ColonyManager.getColonyByDimension(message.colonyId, message.dimension);
+        final IColony colony = IColonyManager.getInstance().getColonyByDimension(message.colonyId, message.dimension);
         if (colony == null || !colony.getPermissions().hasPermission(player, Action.MANAGE_HUTS))
         {
             return;
         }
 
-        final AbstractBuilding buildingWorker = colony.getBuildingManager().getBuilding(message.building);
+        final IBuilding buildingWorker = colony.getBuildingManager().getBuilding(message.building);
         if(buildingWorker instanceof AbstractBuildingWorker)
         {
-            final IToken token = ColonyManager.getRecipeManager().checkOrAddRecipe(message.storage);
+            final IToken token = IColonyManager.getInstance().getRecipeManager().checkOrAddRecipe(message.storage);
 
             if(message.remove)
             {
-                ((AbstractBuildingWorker) buildingWorker).removeRecipe(token);
+                ((IBuildingWorker) buildingWorker).removeRecipe(token);
             }
             else
             {
-                if (!((AbstractBuildingWorker) buildingWorker).addRecipe(token))
+                if (!((IBuildingWorker) buildingWorker).addRecipe(token))
                 {
-                    LanguageHandler.sendPlayerMessage(player, UNABLE_TO_ADD_RECIPE_MESSAGE, ((AbstractBuildingWorker) buildingWorker).getJobName());
+                    LanguageHandler.sendPlayerMessage(player, UNABLE_TO_ADD_RECIPE_MESSAGE, ((IBuildingWorker) buildingWorker).getJobName());
                 }
                 else
                 {
+                    AdvancementUtils.TriggerAdvancementPlayersForColony(colony, playerMP -> AdvancementTriggers.BUILDING_ADD_RECIPE.trigger(playerMP, message.storage));
                     LanguageHandler.sendPlayerMessage(player, "com.minecolonies.coremod.gui.recipe.done");
                 }
             }

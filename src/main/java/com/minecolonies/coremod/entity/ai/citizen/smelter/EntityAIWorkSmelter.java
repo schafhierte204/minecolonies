@@ -1,15 +1,23 @@
 package com.minecolonies.coremod.entity.ai.citizen.smelter;
 
+import com.google.common.reflect.TypeToken;
+import com.ldtteam.structurize.api.util.LanguageHandler;
+import com.minecolonies.api.colony.IColonyManager;
+import com.minecolonies.api.colony.interactionhandling.ChatPriority;
+import com.minecolonies.api.colony.interactionhandling.TranslationTextComponent;
 import com.minecolonies.api.colony.requestsystem.requestable.IRequestable;
+import com.minecolonies.api.colony.requestsystem.requestable.StackList;
+import com.minecolonies.api.crafting.ItemStorage;
+import com.minecolonies.api.entity.ai.statemachine.AITarget;
+import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.api.util.ItemStackUtils;
-import com.minecolonies.coremod.colony.ColonyManager;
+import com.minecolonies.coremod.colony.buildings.AbstractBuildingFurnaceUser;
 import com.minecolonies.coremod.colony.buildings.workerbuildings.BuildingSmeltery;
+import com.minecolonies.coremod.colony.interactionhandling.StandardInteractionResponseHandler;
 import com.minecolonies.coremod.colony.jobs.JobSmelter;
 import com.minecolonies.coremod.colony.requestable.SmeltableOre;
 import com.minecolonies.coremod.entity.ai.basic.AbstractEntityAIUsesFurnace;
-import com.minecolonies.coremod.entity.ai.statemachine.AITarget;
-import com.minecolonies.coremod.entity.ai.statemachine.states.IAIState;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentData;
 import net.minecraft.enchantment.EnchantmentHelper;
@@ -19,19 +27,19 @@ import net.minecraft.item.*;
 import net.minecraft.tileentity.TileEntityFurnace;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.Tuple;
-import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraftforge.items.wrapper.InvWrapper;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.stream.Collectors;
 
+import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.SMELTER_SMELTING_ITEMS;
+import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.START_WORKING;
 import static com.minecolonies.api.util.constant.Constants.RESULT_SLOT;
 import static com.minecolonies.api.util.constant.Constants.STACKSIZE;
-import static com.minecolonies.api.util.constant.TranslationConstants.COM_MINECOLONIES_COREMOD_STATUS_IDLING;
-import static com.minecolonies.api.util.constant.TranslationConstants.SMELTING_DOWN;
-import static com.minecolonies.coremod.entity.ai.statemachine.states.AIWorkerState.SMELTER_SMELTING_ITEMS;
-import static com.minecolonies.coremod.entity.ai.statemachine.states.AIWorkerState.START_WORKING;
+import static com.minecolonies.api.util.constant.TranslationConstants.*;
 
 /**
  * Smelter AI class.
@@ -82,6 +90,11 @@ public class EntityAIWorkSmelter extends AbstractEntityAIUsesFurnace<JobSmelter>
     private static final double BASE_XP_GAIN = 5;
 
     /**
+     * Value to identify the list of filterable ores.
+     */
+    public static final String ORE_LIST = "ores";
+
+    /**
      * Progress in hitting the product.
      */
     private int progress = 0;
@@ -106,7 +119,7 @@ public class EntityAIWorkSmelter extends AbstractEntityAIUsesFurnace<JobSmelter>
     {
         super(job);
         super.registerTargets(
-          new AITarget(SMELTER_SMELTING_ITEMS, this::smeltStuff)
+          new AITarget(SMELTER_SMELTING_ITEMS, this::smeltStuff, HIT_DELAY)
         );
         worker.getCitizenExperienceHandler().setSkillModifier(STRENGTH_MULTIPLIER * worker.getCitizenData().getStrength()
                                   + INTELLIGENCE_MULTIPLIER * worker.getCitizenData().getIntelligence());
@@ -126,7 +139,7 @@ public class EntityAIWorkSmelter extends AbstractEntityAIUsesFurnace<JobSmelter>
      */
     private IAIState smeltStuff()
     {
-        worker.getCitizenStatusHandler().setLatestStatus(new TextComponentTranslation(SMELTING_DOWN));
+        worker.getCitizenStatusHandler().setLatestStatus(new TranslationTextComponent(SMELTING_DOWN));
         if (walkToBuilding())
         {
             return getState();
@@ -157,7 +170,7 @@ public class EntityAIWorkSmelter extends AbstractEntityAIUsesFurnace<JobSmelter>
             worker.getCitizenItemHandler().setHeldItem(EnumHand.MAIN_HAND, slot);
         }
 
-        worker.getCitizenItemHandler().hitBlockWithToolInHand(getOwnBuilding().getLocation());
+        worker.getCitizenItemHandler().hitBlockWithToolInHand(getOwnBuilding().getPosition());
 
         if (progress >= getRequiredProgressForMakingRawMaterial())
         {
@@ -201,7 +214,6 @@ public class EntityAIWorkSmelter extends AbstractEntityAIUsesFurnace<JobSmelter>
         }
 
         progress++;
-        setDelay(HIT_DELAY);
         return getState();
     }
 
@@ -299,7 +311,7 @@ public class EntityAIWorkSmelter extends AbstractEntityAIUsesFurnace<JobSmelter>
         {
             return SMELTER_SMELTING_ITEMS;
         }
-        worker.getCitizenStatusHandler().setLatestStatus(new TextComponentTranslation(COM_MINECOLONIES_COREMOD_STATUS_IDLING));
+        worker.getCitizenStatusHandler().setLatestStatus(new TranslationTextComponent(COM_MINECOLONIES_COREMOD_STATUS_IDLING));
         setDelay(WAIT_AFTER_REQUEST);
         return START_WORKING;
     }
@@ -319,8 +331,41 @@ public class EntityAIWorkSmelter extends AbstractEntityAIUsesFurnace<JobSmelter>
     protected boolean isSmeltable(final ItemStack stack)
     {
         return !ItemStackUtils.isEmpty(stack) && ItemStackUtils.IS_SMELTABLE.and(
-          itemStack -> itemStack.getItem() instanceof ItemBlock
-                         && ColonyManager.getCompatibilityManager().isOre(((ItemBlock) itemStack.getItem()).getBlock().getDefaultState())).test(stack);
+          itemStack -> IColonyManager.getInstance().getCompatibilityManager().isOre(stack)).test(stack);
+    }
+
+    @Override
+    public void requestSmeltable()
+    {
+        if (!getOwnBuilding().hasWorkerOpenRequestsOfType(worker.getCitizenData(), TypeToken.of(getSmeltAbleClass().getClass())) &&
+              !getOwnBuilding().hasWorkerOpenRequestsFiltered(worker.getCitizenData(),
+                req -> req.getShortDisplayString().getUnformattedText().equals(LanguageHandler.format(COM_MINECOLONIES_REQUESTS_SMELTABLE_ORE))))
+        {
+            final Map<String, List<ItemStorage>> allowedItems = getOwnBuilding(AbstractBuildingFurnaceUser.class).getCopyOfAllowedItems();
+            if (allowedItems.containsKey(ORE_LIST))
+            {
+                final List<ItemStack> requests = IColonyManager.getInstance().getCompatibilityManager().getSmeltableOres().stream()
+                                                   .filter(storage -> !allowedItems.get(ORE_LIST).contains(storage))
+                                                   .map(ItemStorage::getItemStack)
+                                                   .collect(Collectors.toList());
+
+                if ( requests.isEmpty() )
+                {
+                    if (worker.getCitizenData() != null)
+                    {
+                        worker.getCitizenData().triggerInteraction(new StandardInteractionResponseHandler(new TranslationTextComponent(FURNACE_USER_NO_ORE), ChatPriority.BLOCKING));
+                    }
+                }
+                else
+                {
+                    worker.getCitizenData().createRequestAsync(new StackList(requests, COM_MINECOLONIES_REQUESTS_SMELTABLE_ORE));
+                }
+            }
+            else
+            {
+                worker.getCitizenData().createRequestAsync(getSmeltAbleClass());
+            }
+        }
     }
 
     /**

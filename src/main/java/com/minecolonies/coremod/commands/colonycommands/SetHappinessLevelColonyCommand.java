@@ -1,10 +1,9 @@
 package com.minecolonies.coremod.commands.colonycommands;
 
 import com.minecolonies.api.colony.IColony;
+import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.permissions.Rank;
 import com.minecolonies.api.util.CompatibilityUtils;
-import com.minecolonies.coremod.colony.Colony;
-import com.minecolonies.coremod.colony.ColonyManager;
 import com.minecolonies.coremod.commands.AbstractSingleCommand;
 import com.minecolonies.coremod.commands.ActionMenuState;
 import com.minecolonies.coremod.commands.IActionCommand;
@@ -21,7 +20,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static com.minecolonies.api.util.constant.CommandConstants.*;
+import static com.minecolonies.api.util.constant.CommandConstants.COLONY_X_NULL;
+import static com.minecolonies.api.util.constant.CommandConstants.NO_COLONY_MESSAGE;
 
 /**
  * List all colonies.
@@ -58,7 +58,7 @@ public class SetHappinessLevelColonyCommand extends AbstractSingleCommand implem
     }
 
     @Override
-    public boolean canRankUseCommand(@NotNull final Colony colony, @NotNull final EntityPlayer player)
+    public boolean canRankUseCommand(@NotNull final IColony colony, @NotNull final EntityPlayer player)
     {
         return colony.getPermissions().getRank(player).equals(Rank.OWNER);
     }
@@ -66,7 +66,7 @@ public class SetHappinessLevelColonyCommand extends AbstractSingleCommand implem
     @Override
     public void execute(@NotNull final MinecraftServer server, @NotNull final ICommandSender sender, @NotNull final ActionMenuState actionMenuState) throws CommandException
     {
-        final Colony colony = actionMenuState.getColonyForArgument("colony");
+        final IColony colony = actionMenuState.getColonyForArgument("colony");
         final Optional<Double> level = Optional.ofNullable(actionMenuState.getDoubleForArgument("level"));
 
         if (colony == null)
@@ -83,13 +83,14 @@ public class SetHappinessLevelColonyCommand extends AbstractSingleCommand implem
     public void execute(@NotNull final MinecraftServer server, @NotNull final ICommandSender sender, @NotNull final String... args) throws CommandException
     {
         final int colonyId;
+        final int dimensionId;
         Optional<Double> level = Optional.empty();
         if (args.length == 0)
         {
             IColony colony = null;
             if (sender instanceof EntityPlayer)
             {
-                colony = ColonyManager.getIColonyByOwner(CompatibilityUtils.getWorld((EntityPlayer) sender), (EntityPlayer) sender);
+                colony = IColonyManager.getInstance().getIColonyByOwner(CompatibilityUtils.getWorldFromEntity((EntityPlayer) sender), (EntityPlayer) sender);
             }
 
             if (colony == null)
@@ -98,17 +99,20 @@ public class SetHappinessLevelColonyCommand extends AbstractSingleCommand implem
                 return;
             }
             colonyId = colony.getID();
+            dimensionId = colony.getDimension();
         }
         else
         {
-            colonyId = getIthArgument(args, 0, -1);
+            colonyId = getColonyIdFromArg(args, 0, -1);
+            dimensionId = getDimensionIdFromArg(args, 0, sender.getEntityWorld().provider.getDimension());
+            
             if (args.length > 1)
             {
                 level = Optional.of(Double.parseDouble(args[1]));
             }
         }
 
-        final Colony colony = ColonyManager.getColonyByWorld(colonyId, server.getWorld(0));
+        final IColony colony = IColonyManager.getInstance().getColonyByWorld(colonyId, server.getWorld(dimensionId));
         if (colony == null)
         {
             final String noColonyFoundMessage = String.format(COLONY_X_NULL, colonyId);
@@ -120,7 +124,7 @@ public class SetHappinessLevelColonyCommand extends AbstractSingleCommand implem
     }
 
     private void executeShared(
-            @NotNull final MinecraftServer server, @NotNull final ICommandSender sender, final Colony colony, final Optional<Double> level) throws CommandException
+            @NotNull final MinecraftServer server, @NotNull final ICommandSender sender, final IColony colony, final Optional<Double> level) throws CommandException
     {
         colony.getColonyHappinessManager().setLockedHappinessModifier(level);
     }

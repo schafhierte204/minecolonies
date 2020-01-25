@@ -11,9 +11,29 @@ import static com.minecolonies.api.util.constant.TranslationConstants.*;
 public final class WindowConstants
 {
     /**
+     * Id of the exit button in the GUI.
+     */
+    public static final String BUTTON_EXIT = "exit";
+
+    /**
+     * Id of the info label in the GUI.
+     */
+    public static final String LABEL_INFO = "info";
+
+    /**
+     * Id of the next page button in the info GUI.
+     */
+    public static final String BUTTON_INFO_NEXT_PAGE = "infoNextPage";
+
+    /**
+     * Id of the prev page button in the info GUI.
+     */
+    public static final String BUTTON_INFO_PREV_PAGE = "infoPrevPage";
+
+    /**
      * Id of the info button in the GUI.
      */
-    public static final String BUTTON_INFO = "info";
+    public static final String BUTTON_INFO = "townhall_info_page";
 
     /**
      * Id of the action button in the GUI.
@@ -51,6 +71,11 @@ public final class WindowConstants
     public static final String BUTTON_RECALL = "recall";
 
     /**
+     * Id of the hire Citizen button in the GUI.
+     */
+    public static final String BUTTON_HIRE = "hire";
+
+    /**
      * Id of the change specialization button in the GUI.
      */
     public static final String BUTTON_CHANGE_SPEC = "changeSpec";
@@ -59,6 +84,11 @@ public final class WindowConstants
      * Id of the rename button in the GUI.
      */
     public static final String BUTTON_RENAME = "rename";
+
+    /**
+     * Id of the mercenary button in the GUI.
+     */
+    public static final String BUTTON_MERCENARY = "mercenaries";
 
     /**
      * Id of the add player button in the GUI.
@@ -74,6 +104,11 @@ public final class WindowConstants
      * Id of the toggle job button in the GUI.
      */
     public static final String BUTTON_TOGGLE_HOUSING = "toggleHousing";
+
+    /**
+     * Id of the toggle move in button in the GUI.
+     */
+    public static final String BUTTON_TOGGLE_MOVE_IN = "toggleMoveIn";
 
     /**
      * Id of the toggle print progress button in the GUI.
@@ -786,7 +821,7 @@ public final class WindowConstants
     public static final int XP_BAR_EMPTY_ROW = 64;
 
     /**
-     * The row where the emtpy Happiness bar starts. 
+     * The row where the emtpy Happiness bar starts.
      */
 
     public static final int HAPPINESS_BAR_EMPTY_ROW = 74;
@@ -797,7 +832,7 @@ public final class WindowConstants
     public static final int XP_BAR_FULL_ROW = 69;
 
     /**
-     * The row where the full happiness bar starts. 
+     * The row where the full happiness bar starts.
      */
     public static final int HAPPINESS_BAR_FULL_ROW = 79;
 
@@ -952,7 +987,7 @@ public final class WindowConstants
     public static final String WINDOW_ID_XP = "xpLabel";
 
     /**
-     * The label to find the happiness label in the gui. 
+     * The label to find the happiness label in the gui.
      */
     public static final String WINDOW_ID_HAPPINESS = "happinessLabel";
 
@@ -992,7 +1027,7 @@ public final class WindowConstants
     public static final String WINDOW_ID_SATURATION_BAR = "saturationBar";
 
     /**
-     * The saturation bar of the citizen. 
+     * The saturation bar of the citizen.
      */
     public static final String WINDOW_ID_HAPPINESS_BAR = "happinessBar";
 
@@ -1089,6 +1124,121 @@ public final class WindowConstants
     public static final String WINDOW_POSTBOX = ":gui/windowpostbox.xml";
     public static final String INPUT_QTY    = "qty";
     public static final String BUTTON_REQUEST = "request";
+
+    /**
+     * Id of the done button in the GUI.
+     */
+    public static final String BUTTON_DONE = "done";
+
+    /**
+     * Id of the citizen name in the GUI.
+     */
+    public static final String CITIZEN_LABEL = "citizen";
+
+    /**
+     * Id of the citizen list in the GUI.
+     */
+    public static final String CITIZEN_LIST = "unassigned";
+
+    /**
+     * Assign button of the gui.
+     */
+    public static final String CITIZEN_DONE = "done";
+
+    /**
+     * Link to the xml file of the window.
+     */
+    public static final String ASSIGN_CITIZEN_RESOURCE_SUFFIX = ":gui/windowAssignCitizen.xml";
+
+    /**
+     * Id of the job label in the GUI.
+     */
+    public static final String CITIZEN_JOB = "job";
+
+    /**
+     * Id of the job label in the GUI.
+     */
+    public static final String CITIZEN_LIVING = "living";
+
+    /**
+     * Edit button for the hut name.
+     */
+    public static final String BUTTON_EDIT_NAME = "editName";
+
+    /**
+     * Id of the done button in the GUI.
+     */
+    public static final String BUTTON_MODE = "mode";
+
+    /**
+     * Id of the citizen list in the GUI.
+     */
+    public static final String CITIZEN_LIST_UNEMP = "unemployed";
+
+    /**
+     * Id of the attributes label in the GUI.
+     */
+    public static final String ATTRIBUTES_LABEL = "attributes";
+
+    /**
+     * Link to the xml file of the window.
+     */
+    public static final String HIRE_WORKER_SUFFIX = ":gui/windowhireworker.xml";
+
+    /**
+     * Id of the fire button
+     */
+    public static final String BUTTON_FIRE = "fire";
+
+    /**
+     * Id of the automatic hiring warning
+     */
+    public static final String AUTO_HIRE_WARN = "autoHireWarn";
+
+    /**
+     * Id of the pause button
+     */
+    public static final String BUTTON_PAUSE = "pause";
+
+    /**
+     * Id of the pause button
+     */
+    public static final String BUTTON_RESTART = "restart";
+
+    /**
+     * Id of the build tool suggestion button.
+     */
+    public static final String BUTTON_BUILDTOOL = "buildtool";
+
+    /**
+     * Id of the direct placement button.
+     */
+    public static final String BUTTON_DIRECT                = "direct";
+
+    /**
+     * String of the suggest building GUI.
+     */
+    public static final String SUGGEST_BUILDING_SOURCE_SUFFIX = ":gui/windowsuggestbuildtool.xml";
+
+    /**
+     * Interaction suffix.
+     */
+    public static final String INTERACTION_RESOURCE_SUFFIX = ":gui/citizen/windowinteraction.xml";
+
+    /**
+     * Id of the chat label.
+     */
+    public static final String CHAT_LABEL_ID = "chat";
+
+    /**
+     * WindowInteraction constants.
+     */
+    public static final int SLIGHTLY_BLUE           = 100;
+    public static final int BUTTON_HEIGHT           = 17;
+    public static final int BUTTON_LENGTH           = 129;
+    public static final int BUTTON_BUFFER           = 3;
+    public static final String RESPONSE_BOX_ID      = "responseOptions";
+    public static final String MEDIUM_SIZED_BUTTON_RES = "textures/gui/builderhut/builder_button_medium_large.png";
 
     /**
      * public constructor to hide implicit public one.

@@ -52,7 +52,7 @@ public final class GuardConstants
     /**
      * Physical Attack delay in ticks.
      */
-    public static final int PHYSICAL_ATTACK_DELAY_BASE = 60;
+    public static final int PHYSICAL_ATTACK_DELAY_BASE = 20;
 
     // -- Delays -- \\
 
@@ -61,7 +61,7 @@ public final class GuardConstants
     /**
      * The base distance for an attack in Blocks
      */
-    public static final int BASE_DISTANCE_FOR_RANGED_ATTACK = 7;
+    public static final int BASE_DISTANCE_FOR_RANGED_ATTACK = 5;
 
     /**
      * Rangers maximum distance in blocks for an attack.(24 max arrow dist)
@@ -74,9 +74,9 @@ public final class GuardConstants
     public static final int RANGER_BASE_DMG = 2;
 
     /**
-     * Flee squaredistance from Target
+     * Flee distance from Target
      */
-    public static final int RANGED_FLEE_SQDIST = 5 * 5;
+    public static final int RANGED_FLEE_SQDIST = 5;
 
     /**
      * Ranged attack velocity
@@ -105,12 +105,17 @@ public final class GuardConstants
     /**
      * Basic delay for the next Knight attack.
      */
-    public static final int KNIGHT_ATTACK_DELAY_BASE = 50;
+    public static final int KNIGHT_ATTACK_DELAY_BASE = 32;
+
+    /**
+     * Basic bonus hp for knights
+     */
+    public static final int KNIGHT_HP_BONUS = 5;
 
     /**
      * This knight's max distance for attacking.
      */
-    public static final double MAX_DISTANCE_FOR_ATTACK = 3;
+    public static final int MAX_DISTANCE_FOR_ATTACK = 2;
 
     // -- Knight Guard Stuff -- \\
 
@@ -145,14 +150,14 @@ public final class GuardConstants
     /**
      * Guard armor constants
      */
-    public static final Tuple<Integer, Integer> LEATHER_LEVEL_RANGE = new Tuple<>(0, 20);
-    public static final Tuple<Integer, Integer> GOLD_LEVEL_RANGE = new Tuple<>(0, 20);
-    public static final Tuple<Integer, Integer> CHAIN_LEVEL_RANGE = new Tuple<>(0, 20);
-    public static final Tuple<Integer, Integer> IRON_LEVEL_RANGE = new Tuple<>(5, 30);
+    public static final Tuple<Integer, Integer> LEATHER_LEVEL_RANGE = new Tuple<>(0, 99);
+    public static final Tuple<Integer, Integer> GOLD_LEVEL_RANGE = new Tuple<>(0, 99);
+    public static final Tuple<Integer, Integer> CHAIN_LEVEL_RANGE = new Tuple<>(0, 99);
+    public static final Tuple<Integer, Integer> IRON_LEVEL_RANGE = new Tuple<>(5, 99);
     public static final Tuple<Integer, Integer> DIA_LEVEL_RANGE = new Tuple<>(15, 99);
 
-    public static final Tuple<Integer, Integer> LEATHER_BUILDING_LEVEL_RANGE = new Tuple<>(1, 3);
-    public static final Tuple<Integer, Integer> GOLD_BUILDING_LEVEL_RANGE = new Tuple<>(1, 4);
+    public static final Tuple<Integer, Integer> LEATHER_BUILDING_LEVEL_RANGE = new Tuple<>(1, 5);
+    public static final Tuple<Integer, Integer> GOLD_BUILDING_LEVEL_RANGE = new Tuple<>(1, 5);
     public static final Tuple<Integer, Integer> CHAIN_BUILDING_LEVEL_RANGE = new Tuple<>(2, 5);
     public static final Tuple<Integer, Integer> IRON_BUILDING_LEVEL_RANGE = new Tuple<>(3, 5);
     public static final Tuple<Integer, Integer> DIA_BUILDING_LEVEL_RANGE = new Tuple<>(4, 5);

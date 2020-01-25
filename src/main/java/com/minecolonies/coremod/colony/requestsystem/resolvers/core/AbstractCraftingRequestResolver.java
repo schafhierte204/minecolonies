@@ -8,12 +8,9 @@ import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.request.RequestState;
 import com.minecolonies.api.colony.requestsystem.requestable.IDeliverable;
 import com.minecolonies.api.colony.requestsystem.requestable.IRequestable;
-import com.minecolonies.api.colony.requestsystem.requestable.Stack;
 import com.minecolonies.api.colony.requestsystem.requester.IRequester;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.crafting.IRecipeStorage;
-import com.minecolonies.api.util.CraftingUtils;
-import com.minecolonies.api.util.Log;
 import com.minecolonies.coremod.colony.buildings.AbstractBuilding;
 import com.minecolonies.coremod.colony.buildings.AbstractBuildingWorker;
 import com.minecolonies.coremod.colony.requestsystem.requesters.IBuildingBasedRequester;
@@ -21,8 +18,7 @@ import net.minecraft.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Predicate;
 
 import static com.minecolonies.api.util.constant.Constants.MAX_CRAFTING_CYCLE_DEPTH;
@@ -62,7 +58,7 @@ public abstract class AbstractCraftingRequestResolver extends AbstractRequestRes
     {
         if (!manager.getColony().getWorld().isRemote)
         {
-            return Optional.ofNullable(manager.getColony().getRequesterBuildingForPosition(getRequesterLocation().getInDimensionLocation()));
+            return Optional.ofNullable(manager.getColony().getRequesterBuildingForPosition(getLocation().getInDimensionLocation()));
         }
 
         return Optional.empty();
@@ -70,20 +66,20 @@ public abstract class AbstractCraftingRequestResolver extends AbstractRequestRes
 
     @NotNull
     @Override
-    public void onRequestComplete(@NotNull final IRequestManager manager, @NotNull final IToken<?> token)
+    public void onRequestedRequestComplete(@NotNull final IRequestManager manager, @NotNull final IRequest<?> request)
     {
 	//Noop
     }
 
     @Override
-    public boolean canResolve(@NotNull final IRequestManager manager, final IRequest<? extends IDeliverable> requestToCheck)
+    public boolean canResolveRequest(@NotNull final IRequestManager manager, final IRequest<? extends IDeliverable> requestToCheck)
     {
         if (!manager.getColony().getWorld().isRemote)
         {
-            final ILocation requesterLocation = requestToCheck.getRequester().getRequesterLocation();
-            if (isPublicCrafter || requesterLocation.equals(getRequesterLocation()))
+            final ILocation requesterLocation = requestToCheck.getRequester().getLocation();
+            if (isPublicCrafter || requesterLocation.equals(getLocation()))
             {
-                final Optional<AbstractBuilding> building = getBuilding(manager, requestToCheck.getToken()).map(r -> (AbstractBuilding) r);
+                final Optional<AbstractBuilding> building = getBuilding(manager, requestToCheck.getId()).map(r -> (AbstractBuilding) r);
                 return building.map(b -> canResolveForBuilding(manager, requestToCheck, b)).orElse(false);
             }
         }
@@ -110,33 +106,46 @@ public abstract class AbstractCraftingRequestResolver extends AbstractRequestRes
 
     /**
      * Method to check if a crafting cycle can be created.
+     *
      * @param manager the manager.
      * @param request the request.
      * @param target the target.
      * @return true if so.
      */
-    protected boolean createsCraftingCycle(@NotNull final IRequestManager manager, @NotNull final IRequest<?> request, @NotNull final IRequest<? extends IDeliverable> target)
+    protected boolean createsCraftingCycle(
+      @NotNull final IRequestManager manager,
+      @NotNull final IRequest<?> request,
+      @NotNull final IRequest<? extends IDeliverable> target)
     {
-        return createsCraftingCycle(manager, request, target, 0);
+        return createsCraftingCycle(manager, request, target, 0, new ArrayList<>());
     }
 
     /**
      * Method to check if a crafting cycle can be created.
+     *
      * @param manager the manager.
      * @param request the request.
      * @param target the target to create.
      * @param count the itemCount.
+     * @param reqs the list of reqs.
      * @return true if possible.
      */
     protected boolean createsCraftingCycle(
-            @NotNull final IRequestManager manager,
-            @NotNull final IRequest<?> request,
-            @NotNull final IRequest<? extends IDeliverable> target,
-            final int count)
+      @NotNull final IRequestManager manager,
+      @NotNull final IRequest<?> request,
+      @NotNull final IRequest<? extends IDeliverable> target,
+      final int count,
+      final List<IRequestable> reqs)
     {
+        if (reqs.contains(request.getRequest()))
+        {
+            return true;
+        }
+        reqs.add(request.getRequest());
+
         if (count > MAX_CRAFTING_CYCLE_DEPTH)
         {
-            return false;
+            return true;
         }
 
         if (!request.equals(target) && request.getRequest().equals(target.getRequest()))
@@ -149,7 +158,7 @@ public abstract class AbstractCraftingRequestResolver extends AbstractRequestRes
             return false;
         }
 
-        return createsCraftingCycle(manager, manager.getRequestForToken(request.getParent()), target, count+1);
+        return createsCraftingCycle(manager, manager.getRequestForToken(request.getParent()), target, count+1, reqs);
     }
 
     /**
@@ -162,9 +171,9 @@ public abstract class AbstractCraftingRequestResolver extends AbstractRequestRes
 
     @Nullable
     @Override
-    public List<IToken<?>> attemptResolve(@NotNull final IRequestManager manager, @NotNull final IRequest<? extends IDeliverable> request)
+    public List<IToken<?>> attemptResolveRequest(@NotNull final IRequestManager manager, @NotNull final IRequest<? extends IDeliverable> request)
     {
-        final AbstractBuilding building = getBuilding(manager, request.getToken()).map(r -> (AbstractBuilding) r).get();
+        final AbstractBuilding building = getBuilding(manager, request.getId()).map(r -> (AbstractBuilding) r).get();
         return attemptResolveForBuilding(manager, request, building);
     }
 
@@ -193,15 +202,16 @@ public abstract class AbstractCraftingRequestResolver extends AbstractRequestRes
             final ItemStack requestStack,
             final int count)
     {
-        return ImmutableList.of(manager.createRequest(this, createNewRequestableForStack(requestStack, count)));
+        final int recipeExecutionsCount = (int) Math.ceil( (double) count / requestStack.getCount());
+        return ImmutableList.of(manager.createRequest(this, createNewRequestableForStack(requestStack.copy(), recipeExecutionsCount)));
     }
 
     protected abstract IRequestable createNewRequestableForStack(ItemStack stack, final int count);
 
     @Override
-    public void resolve(@NotNull final IRequestManager manager, @NotNull final IRequest<? extends IDeliverable> request)
+    public void resolveRequest(@NotNull final IRequestManager manager, @NotNull final IRequest<? extends IDeliverable> request)
     {
-        final AbstractBuilding building = getBuilding(manager, request.getToken()).map(r -> (AbstractBuilding) r).get();
+        final AbstractBuilding building = getBuilding(manager, request.getId()).map(r -> (AbstractBuilding) r).get();
         resolveForBuilding(manager, request, building);
     }
 
@@ -213,7 +223,7 @@ public abstract class AbstractCraftingRequestResolver extends AbstractRequestRes
      */
     public void resolveForBuilding(@NotNull final IRequestManager manager, @NotNull final IRequest<? extends IDeliverable> request, @NotNull final AbstractBuilding building)
     {
-        manager.updateRequestState(request.getToken(), RequestState.COMPLETED);
+        manager.updateRequestState(request.getId(), RequestState.RESOLVED);
     }
 
 

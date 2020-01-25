@@ -7,7 +7,6 @@ import com.minecolonies.api.colony.requestsystem.resolver.IRequestResolverFactor
 import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.util.constant.TypeConstants;
 import com.minecolonies.coremod.colony.requestsystem.resolvers.PrivateWorkerCraftingProductionResolver;
-import com.minecolonies.coremod.colony.requestsystem.resolvers.PrivateWorkerCraftingProductionResolver;
 import net.minecraft.nbt.NBTTagCompound;
 import org.jetbrains.annotations.NotNull;
 
@@ -48,8 +47,8 @@ public class PrivateWorkerCraftingProductionResolverFactory implements IRequestR
       @NotNull final IFactoryController controller, @NotNull final PrivateWorkerCraftingProductionResolver privateWorkerCraftingProductionResolverFactory)
     {
         final NBTTagCompound compound = new NBTTagCompound();
-        compound.setTag(NBT_TOKEN, controller.serialize(privateWorkerCraftingProductionResolverFactory.getRequesterId()));
-        compound.setTag(NBT_LOCATION, controller.serialize(privateWorkerCraftingProductionResolverFactory.getRequesterLocation()));
+        compound.setTag(NBT_TOKEN, controller.serialize(privateWorkerCraftingProductionResolverFactory.getId()));
+        compound.setTag(NBT_LOCATION, controller.serialize(privateWorkerCraftingProductionResolverFactory.getLocation()));
         return compound;
     }
 

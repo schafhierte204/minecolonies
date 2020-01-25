@@ -1,17 +1,26 @@
 package com.minecolonies.coremod.colony;
 
+import com.minecolonies.api.MinecoloniesAPIProxy;
+import com.minecolonies.api.colony.ICitizenDataView;
+import com.minecolonies.api.colony.interactionhandling.ChatPriority;
+import com.minecolonies.api.colony.interactionhandling.IInteractionResponseHandler;
 import com.minecolonies.api.util.BlockPosUtil;
-import com.minecolonies.coremod.inventory.InventoryCitizen;
+import com.minecolonies.coremod.colony.interactionhandling.ServerCitizenInteractionResponseHandler;
+import com.minecolonies.api.inventory.InventoryCitizen;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraftforge.fml.common.network.ByteBufUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.minecolonies.api.util.constant.NbtTagConstants.TAG_OFFHAND_HELD_ITEM_SLOT;
 
 /**
  * The CitizenDataView is the client-side representation of a CitizenData. Views
@@ -19,25 +28,19 @@ import org.jetbrains.annotations.Nullable;
  * client-friendly form. Mutable operations on a View result in a message to the
  * server to perform the operation.
  */
-public class CitizenDataView
+public class CitizenDataView implements ICitizenDataView
 {
-
     private static final String TAG_HELD_ITEM_SLOT = "HeldItemSlot";
-    public static final String TAG_OFFHAND_HELD_ITEM_SLOT = "OffhandHeldItemSlot";
-
-    /**
-     * The max amount of lines the latest log allows.
-     */
-    private static final int MAX_LINES_OF_LATEST_LOG = 4;
 
     /**
      * Attributes.
      */
-    private final int id;
-    private int entityId;
-    private String name;
-    private boolean female;
-    private boolean paused;
+    private final int     id;
+    private       int     entityId;
+    private       String  name;
+    private       boolean female;
+    private       boolean paused;
+    private       boolean isChild;
 
     /**
      * colony id of the citizen.
@@ -92,12 +95,27 @@ public class CitizenDataView
     @Nullable
     private BlockPos workBuilding;
 
-    /**
-     * The 4 lines of the latest status.
-     */
-    private final ITextComponent[] latestStatus = new ITextComponent[MAX_LINES_OF_LATEST_LOG];
-
     private InventoryCitizen inventory;
+
+    /**
+     * The citizen chat options on the server side.
+     */
+    private final Map<ITextComponent, IInteractionResponseHandler> citizenChatOptions = new HashMap<>();
+
+    /**
+     * If the citizen has any primary blocking interactions.
+     */
+    private boolean hasPrimaryBlockingInteractions;
+
+    /**
+     * If the citizen has any primary interactions.
+     */
+    private boolean hasAnyPrimaryInteraction;
+
+    /**
+     * List of primary interactions (sorted by priority).
+     */
+    private List<IInteractionResponseHandler> primaryInteractions;
 
     /**
      * Set View id.
@@ -115,6 +133,7 @@ public class CitizenDataView
      *
      * @return view Id.
      */
+    @Override
     public int getId()
     {
         return id;
@@ -125,6 +144,7 @@ public class CitizenDataView
      *
      * @return entity id.
      */
+    @Override
     public int getEntityId()
     {
         return entityId;
@@ -135,6 +155,7 @@ public class CitizenDataView
      *
      * @return entity name.
      */
+    @Override
     public String getName()
     {
         return name;
@@ -145,6 +166,7 @@ public class CitizenDataView
      *
      * @return true if entity is female.
      */
+    @Override
     public boolean isFemale()
     {
         return female;
@@ -155,14 +177,27 @@ public class CitizenDataView
      *
      * @return true if entity is paused.
      */
+    @Override
     public boolean isPaused()
     {
         return paused;
     }
 
     /**
+     * Check if the entity is a child
+     *
+     * @return true if child
+     */
+    @Override
+    public boolean isChild()
+    {
+        return isChild;
+    }
+
+    /**
      * DEPRECATED
      */
+    @Override
     public void setPaused(final boolean p)
     {
         this.paused = p;
@@ -173,6 +208,7 @@ public class CitizenDataView
      *
      * @return the citizens level.
      */
+    @Override
     public int getLevel()
     {
         return level;
@@ -183,6 +219,7 @@ public class CitizenDataView
      *
      * @return it's experience.
      */
+    @Override
     public double getExperience()
     {
         return experience;
@@ -193,6 +230,7 @@ public class CitizenDataView
      *
      * @return the job as a string.
      */
+    @Override
     public String getJob()
     {
         return job;
@@ -203,6 +241,7 @@ public class CitizenDataView
      *
      * @return the home coordinates.
      */
+    @Override
     @Nullable
     public BlockPos getHomeBuilding()
     {
@@ -214,6 +253,7 @@ public class CitizenDataView
      *
      * @return the work coordinates.
      */
+    @Override
     @Nullable
     public BlockPos getWorkBuilding()
     {
@@ -223,6 +263,7 @@ public class CitizenDataView
     /**
      * DEPRECATED
      */
+    @Override
     @Nullable
     public void setWorkBuilding(final BlockPos bp)
     {
@@ -234,6 +275,7 @@ public class CitizenDataView
      *
      * @return unique id of the colony.
      */
+    @Override
     public int getColonyId()
     {
         return colonyId;
@@ -244,6 +286,7 @@ public class CitizenDataView
      *
      * @return citizen Strength value.
      */
+    @Override
     public int getStrength()
     {
         return strength;
@@ -254,6 +297,7 @@ public class CitizenDataView
      *
      * @return citizen Endurance value.
      */
+    @Override
     public int getEndurance()
     {
         return endurance;
@@ -264,6 +308,7 @@ public class CitizenDataView
      *
      * @return citizen Charisma value.
      */
+    @Override
     public int getCharisma()
     {
         return charisma;
@@ -274,6 +319,7 @@ public class CitizenDataView
      * 
      * @return citizens current Happiness value
      */
+    @Override
     public double getHappiness()
     {
         return happiness;
@@ -284,6 +330,7 @@ public class CitizenDataView
      *
      * @return the saturation a double.
      */
+    @Override
     public double getSaturation()
     {
         return saturation;
@@ -294,6 +341,7 @@ public class CitizenDataView
      *
      * @return citizen Intelligence value.
      */
+    @Override
     public int getIntelligence()
     {
         return intelligence;
@@ -304,6 +352,7 @@ public class CitizenDataView
      *
      * @return citizen Dexterity value.
      */
+    @Override
     public int getDexterity()
     {
         return dexterity;
@@ -314,6 +363,7 @@ public class CitizenDataView
      *
      * @return citizen Dexterity value
      */
+    @Override
     public double getHealth()
     {
         return health;
@@ -324,6 +374,7 @@ public class CitizenDataView
      *
      * @return citizen Dexterity value.
      */
+    @Override
     public double getMaxHealth()
     {
         return maxHealth;
@@ -334,6 +385,7 @@ public class CitizenDataView
      * 
      * @return the BlockPos.
      */
+    @Override
     public BlockPos getPosition()
     {
         return position;
@@ -345,12 +397,14 @@ public class CitizenDataView
      * @param buf
      *            Byte buffer to deserialize.
      */
+    @Override
     public void deserialize(@NotNull final ByteBuf buf)
     {
         name = ByteBufUtils.readUTF8String(buf);
         female = buf.readBoolean();
         entityId = buf.readInt();
         paused = buf.readBoolean();
+        isChild = buf.readBoolean();
 
         homeBuilding = buf.readBoolean() ? BlockPosUtil.readFromByteBuf(buf) : null;
         workBuilding = buf.readBoolean() ? BlockPosUtil.readFromByteBuf(buf) : null;
@@ -378,14 +432,6 @@ public class CitizenDataView
 
         job = ByteBufUtils.readUTF8String(buf);
 
-        final int length = buf.readInt();
-        for (int i = 0; i < length; i++)
-        {
-            final String textComp = ByteBufUtils.readUTF8String(buf);
-            final TextComponentTranslation textComponent = new TextComponentTranslation(textComp);
-            latestStatus[i] = textComponent;
-        }
-
         colonyId = buf.readInt();
 
         final NBTTagCompound compound = ByteBufUtils.readTag(buf);
@@ -396,18 +442,31 @@ public class CitizenDataView
         this.inventory.setHeldItem(EnumHand.OFF_HAND, compound.getInteger(TAG_OFFHAND_HELD_ITEM_SLOT));
 
         position = BlockPosUtil.readFromByteBuf(buf);
+
+        citizenChatOptions.clear();
+        final int size = buf.readInt();
+        for (int i = 0; i < size; i++)
+        {
+            final NBTTagCompound compoundNBT = ByteBufUtils.readTag(buf);
+            final ServerCitizenInteractionResponseHandler handler =
+              (ServerCitizenInteractionResponseHandler) MinecoloniesAPIProxy.getInstance().getInteractionResponseHandlerDataManager().createFrom(this, compoundNBT);
+            citizenChatOptions.put(handler.getInquiry(), handler);
+        }
+
+        primaryInteractions = citizenChatOptions.values().stream().filter(IInteractionResponseHandler::isPrimary).sorted(Comparator.comparingInt(e -> e.getPriority().getPriority())).collect(Collectors.toList());
+        if (!primaryInteractions.isEmpty())
+        {
+            hasAnyPrimaryInteraction = true;
+            hasPrimaryBlockingInteractions = primaryInteractions.get(0).getPriority().getPriority() >= ChatPriority.IMPORTANT.ordinal();
+        }
+        else
+        {
+            hasAnyPrimaryInteraction = false;
+            hasPrimaryBlockingInteractions = false;
+        }
     }
 
-    /**
-     * Get the array of the latest status.
-     *
-     * @return the array of ITextComponents.
-     */
-    public ITextComponent[] getLatestStatus()
-    {
-        return latestStatus.clone();
-    }
-
+    @Override
     public InventoryCitizen getInventory()
     {
         return inventory;
@@ -416,6 +475,7 @@ public class CitizenDataView
     /**
      * @return returns the current modifier related to food.
      */
+    @Override
     public double getFoodModifier()
     {
         return foodModifier;
@@ -424,6 +484,7 @@ public class CitizenDataView
     /**
      * @return returns the current modifier related to damage.
      */
+    @Override
     public double getDamageModifier()
     {
         return damageModifier;
@@ -432,6 +493,7 @@ public class CitizenDataView
     /**
      * @return returns the current modifier related to house.
      */
+    @Override
     public double getHouseModifier()
     {
         return houseModifier;
@@ -440,6 +502,7 @@ public class CitizenDataView
     /**
      * @return returns the current modifier related to job.
      */
+    @Override
     public double getJobModifier()
     {
         return jobModifier;
@@ -448,6 +511,7 @@ public class CitizenDataView
     /**
      * @return returns the current modifier related to fields.
      */
+    @Override
     public double getFieldsModifier()
     {
         return fieldsModifier;
@@ -456,8 +520,34 @@ public class CitizenDataView
     /**
      * @return returns the current modifier related to tools.
      */
+    @Override
     public double getToolsModifiers()
     {
         return toolsModifiers;
+    }
+
+    @Override
+    public List<IInteractionResponseHandler> getOrderedInteractions()
+    {
+        return primaryInteractions;
+    }
+
+    @Override
+    @Nullable
+    public IInteractionResponseHandler getSpecificInteraction(@NotNull final ITextComponent component)
+    {
+        return citizenChatOptions.getOrDefault(component, null);
+    }
+
+    @Override
+    public boolean hasBlockingInteractions()
+    {
+        return this.hasPrimaryBlockingInteractions;
+    }
+
+    @Override
+    public boolean hasPendingInteractions()
+    {
+        return this.hasAnyPrimaryInteraction;
     }
 }

@@ -3,30 +3,41 @@ package com.minecolonies.coremod.entity.ai.basic;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.reflect.TypeToken;
+import com.minecolonies.api.colony.buildings.IBuildingWorker;
+import com.minecolonies.api.colony.interactionhandling.ChatPriority;
+import com.minecolonies.api.colony.interactionhandling.TranslationTextComponent;
+import com.minecolonies.api.colony.jobs.IJob;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.request.RequestState;
 import com.minecolonies.api.colony.requestsystem.requestable.IDeliverable;
 import com.minecolonies.api.colony.requestsystem.requestable.Stack;
 import com.minecolonies.api.colony.requestsystem.requestable.Tool;
+import com.minecolonies.api.colony.requestsystem.resolver.IRequestResolver;
+import com.minecolonies.api.colony.requestsystem.resolver.player.IPlayerRequestResolver;
+import com.minecolonies.api.colony.requestsystem.resolver.retrying.IRetryingRequestResolver;
 import com.minecolonies.api.crafting.ItemStorage;
 import com.minecolonies.api.entity.ai.pathfinding.IWalkToProxy;
+import com.minecolonies.api.entity.ai.statemachine.AIEventTarget;
+import com.minecolonies.api.entity.ai.statemachine.AITarget;
+import com.minecolonies.api.entity.ai.statemachine.states.AIBlockingEventType;
+import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
+import com.minecolonies.api.inventory.InventoryCitizen;
+import com.minecolonies.api.tileentities.AbstractTileEntityColonyBuilding;
 import com.minecolonies.api.util.*;
 import com.minecolonies.api.util.constant.Constants;
 import com.minecolonies.api.util.constant.IToolType;
 import com.minecolonies.api.util.constant.ToolType;
 import com.minecolonies.api.util.constant.TypeConstants;
 import com.minecolonies.coremod.colony.buildings.AbstractBuildingWorker;
+import com.minecolonies.coremod.colony.interactionhandling.PosBasedInteractionResponseHandler;
+import com.minecolonies.coremod.colony.interactionhandling.RequestBasedInteractionResponseHandler;
+import com.minecolonies.coremod.colony.interactionhandling.StandardInteractionResponseHandler;
 import com.minecolonies.coremod.colony.jobs.AbstractJob;
 import com.minecolonies.coremod.colony.jobs.JobDeliveryman;
-import com.minecolonies.coremod.entity.ai.minimal.EntityAIStatePausedHandler;
-import com.minecolonies.coremod.entity.ai.statemachine.AIEventTarget;
-import com.minecolonies.coremod.entity.ai.statemachine.AITarget;
-import com.minecolonies.coremod.entity.ai.statemachine.states.AIBlockingEventType;
-import com.minecolonies.coremod.entity.ai.statemachine.states.IAIState;
 import com.minecolonies.coremod.entity.pathfinding.EntityCitizenWalkToProxy;
-import com.minecolonies.coremod.inventory.InventoryCitizen;
 import com.minecolonies.coremod.util.WorkerUtil;
 import net.minecraft.block.Block;
+import net.minecraft.entity.ai.RandomPositionGenerator;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
@@ -34,7 +45,7 @@ import net.minecraft.tileentity.TileEntityChest;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.math.Vec3d;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.wrapper.InvWrapper;
@@ -46,12 +57,13 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Predicate;
 
+import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
 import static com.minecolonies.api.util.constant.BuildingConstants.MAX_PRIO;
 import static com.minecolonies.api.util.constant.CitizenConstants.*;
+import static com.minecolonies.api.util.constant.Constants.*;
 import static com.minecolonies.api.util.constant.Suppression.RAWTYPES;
 import static com.minecolonies.api.util.constant.ToolLevelConstants.TOOL_LEVEL_WOOD_OR_GOLD;
 import static com.minecolonies.api.util.constant.TranslationConstants.*;
-import static com.minecolonies.coremod.entity.ai.statemachine.states.AIWorkerState.*;
 import static net.minecraftforge.items.CapabilityItemHandler.ITEM_HANDLER_CAPABILITY;
 
 /**
@@ -140,13 +152,13 @@ public abstract class AbstractEntityAIBasic<J extends AbstractJob> extends Abstr
           /*
             Init safety checks and transition to IDLE
            */
-          new AIEventTarget(AIBlockingEventType.AI_BLOCKING, this::initSafetyChecks),
+          new AIEventTarget(AIBlockingEventType.AI_BLOCKING, this::initSafetyChecks, 1),
           /*
             Update chestbelt and nametag
             Will be executed every time
             and does not stop execution
            */
-          new AIEventTarget(AIBlockingEventType.AI_BLOCKING, this::updateVisualState),
+          new AIEventTarget(AIBlockingEventType.AI_BLOCKING, this::updateVisualState, 1),
           /*
             If waitingForSomething returns true
             stop execution to wait for it.
@@ -154,51 +166,47 @@ public abstract class AbstractEntityAIBasic<J extends AbstractJob> extends Abstr
             (returning null would not stop execution)
            */
           new AIEventTarget(AIBlockingEventType.AI_BLOCKING, this::waitingForSomething, this::getState, 1),
-          /*
-            Check if any items are needed.
-            If yes, transition to NEEDS_ITEM.
-            and wait for new items.
-           */
-          new AITarget(NEEDS_ITEM, this::waitForRequests),
-          new AIEventTarget(AIBlockingEventType.AI_BLOCKING, () ->
-                                                                  (getState() != NEEDS_ITEM
-                                                                     && (this.getOwnBuilding().hasCitizenCompletedRequests(worker.getCitizenData())
-                                                                           || this.getOwnBuilding()
-                                                                                .hasWorkerOpenRequestsFiltered(worker.getCitizenData(),
-                                                                                  r -> !worker.getCitizenData().isRequestAsync(r.getToken())))
-                                                                  ), () -> NEEDS_ITEM),
 
           /*
             Dumps inventory as long as needs be.
             If inventory is dumped, execution continues
             to resolve state.
            */
-          new AITarget(INVENTORY_FULL, this::dumpInventory),
+          new AIEventTarget(AIBlockingEventType.STATE_BLOCKING, this::inventoryNeedsDump, INVENTORY_FULL, 100),
+          new AITarget(INVENTORY_FULL, this::dumpInventory, 10),
           /*
-            Check if inventory has to be dumped.
+            Check if any items are needed.
+            If yes, transition to NEEDS_ITEM.
+            and wait for new items.
            */
-          new AIEventTarget(AIBlockingEventType.STATE_BLOCKING, this::inventoryNeedsDump, INVENTORY_FULL),
+          new AIEventTarget(AIBlockingEventType.AI_BLOCKING, () ->
+                                                               ((this.getOwnBuilding().hasCitizenCompletedRequests(worker.getCitizenData())
+                                                                           || this.getOwnBuilding()
+                                                                                .hasWorkerOpenRequestsFiltered(worker.getCitizenData(),
+                                                                                  r -> !worker.getCitizenData().isRequestAsync(r.getId())))
+                                                               ), NEEDS_ITEM, 20),
+          new AITarget(NEEDS_ITEM, this::waitForRequests, 10),
           /*
            * Gather a needed item.
            */
-          new AITarget(GATHERING_REQUIRED_MATERIALS, this::getNeededItem),
+          new AITarget(GATHERING_REQUIRED_MATERIALS, this::getNeededItem, TICKS_SECOND),
           /*
            * Place any non-restart regarding AITargets before this one
            * Restart AI, building etc.
            */
-          new AIEventTarget(AIBlockingEventType.STATE_BLOCKING, this::shouldRestart, this::restart),
+          new AIEventTarget(AIBlockingEventType.STATE_BLOCKING, this::shouldRestart, this::restart, TICKS_SECOND),
           /*
            * Reset if not paused.
            */
-          new AITarget(PAUSED, () -> !this.isPaused(), () -> IDLE, 20),
+          new AITarget(PAUSED, () -> !this.isPaused(), () -> IDLE, TICKS_SECOND),
           /*
            * Do not work if worker is paused
            */
-          new AITarget(PAUSED, this::bePaused),
+          new AITarget(PAUSED, this::bePaused, 10),
           /*
            * Start paused with inventory dump
            */
-          new AIEventTarget(AIBlockingEventType.AI_BLOCKING, this::isStartingPaused, INVENTORY_FULL)
+          new AIEventTarget(AIBlockingEventType.AI_BLOCKING, this::isStartingPaused, INVENTORY_FULL, TICKS_SECOND)
         );
     }
 
@@ -214,7 +222,7 @@ public abstract class AbstractEntityAIBasic<J extends AbstractJob> extends Abstr
      */
     private IAIState getNeededItem()
     {
-        worker.getCitizenStatusHandler().setLatestStatus(new TextComponentTranslation(COM_MINECOLONIES_COREMOD_STATUS_GATHERING));
+        worker.getCitizenStatusHandler().setLatestStatus(new TranslationTextComponent(COM_MINECOLONIES_COREMOD_STATUS_GATHERING));
         setDelay(STANDARD_DELAY);
 
         if (walkTo == null && walkToBuilding())
@@ -222,7 +230,8 @@ public abstract class AbstractEntityAIBasic<J extends AbstractJob> extends Abstr
             return getState();
         }
 
-        if (needsCurrently == null || !InventoryUtils.hasItemInProvider(getOwnBuilding(), needsCurrently))
+
+        if (needsCurrently == null)
         {
             return getStateAfterPickUp();
         }
@@ -269,7 +278,7 @@ public abstract class AbstractEntityAIBasic<J extends AbstractJob> extends Abstr
     @Nullable
     public <W extends AbstractBuildingWorker> W getOwnBuilding()
     {
-        final AbstractBuildingWorker worker = getOwnBuilding(getExpectedBuildingClass());
+        final IBuildingWorker worker = getOwnBuilding(getExpectedBuildingClass());
         return worker == null ? null : (W) worker;
     }
 
@@ -318,7 +327,7 @@ public abstract class AbstractEntityAIBasic<J extends AbstractJob> extends Abstr
             {
                 final String name = this.worker.getName();
                 final BlockPos workerPosition = worker.getPosition();
-                final AbstractJob colonyJob = worker.getCitizenJobHandler().getColonyJob();
+                final IJob colonyJob = worker.getCitizenJobHandler().getColonyJob();
                 final String jobName = colonyJob == null ? "null" : colonyJob.getName();
                 Log.getLogger().error("Pausing Entity " + name + " (" + jobName + ") at " + workerPosition + " for " + timeout + " Seconds because of error:");
             }
@@ -398,14 +407,9 @@ public abstract class AbstractEntityAIBasic<J extends AbstractJob> extends Abstr
     @Nullable
     private IAIState initSafetyChecks()
     {
-        if (null == getOwnBuilding())
+        if (null == getOwnBuilding() || worker.getCitizenData() == null)
         {
-            if (getState() == INIT)
-            {
-                return INIT;
-            }
-
-            return IDLE;
+            return INIT;
         }
 
         if (getState() == INIT)
@@ -457,7 +461,7 @@ public abstract class AbstractEntityAIBasic<J extends AbstractJob> extends Abstr
         if (delay > 0)
         {
             if (currentStandingLocation != null
-                  && !worker.isWorkerAtSiteWithMove(currentStandingLocation, DEFAULT_RANGE_FOR_DELAY))
+                  && (!worker.getNavigator().noPath() || !worker.isWorkerAtSiteWithMove(currentStandingLocation, DEFAULT_RANGE_FOR_DELAY)))
             {
                 //Don't decrease delay as we are just walking...
                 return true;
@@ -466,7 +470,7 @@ public abstract class AbstractEntityAIBasic<J extends AbstractJob> extends Abstr
             {
                 worker.getCitizenItemHandler().hitBlockWithToolInHand(currentWorkingLocation);
             }
-            delay--;
+            delay-= getTickRate();
             return true;
         }
         clearWorkTarget();
@@ -505,13 +509,34 @@ public abstract class AbstractEntityAIBasic<J extends AbstractJob> extends Abstr
             return;
         }
 
+        if ( getOwnBuilding().hasWorkerOpenRequests( worker.getCitizenData() ) )
+        {
+            for ( final IRequest request : getOwnBuilding().getOpenRequests( worker.getCitizenData() ) )
+            {
+                final IRequestResolver<?> resolver = worker.getCitizenColonyHandler().getColony().getRequestManager().getResolverForRequest(request.getId());
+                if (resolver instanceof IPlayerRequestResolver || resolver instanceof IRetryingRequestResolver)
+                {
+                    if ( worker.getCitizenData().isRequestAsync(request.getId()) )
+                    {
+                        worker.getCitizenData().triggerInteraction(new RequestBasedInteractionResponseHandler(new TranslationTextComponent(ASYNC_REQUEST,
+                          request.getShortDisplayString().getFormattedText()), ChatPriority.PENDING, new TranslationTextComponent(NORMAL_REQUEST), request.getId()));
+                    }
+                    else
+                    {
+                        worker.getCitizenData().triggerInteraction(new RequestBasedInteractionResponseHandler(new TranslationTextComponent(NORMAL_REQUEST,
+                          request.getShortDisplayString().getFormattedText()), ChatPriority.BLOCKING, new TranslationTextComponent(NORMAL_REQUEST), request.getId()));
+                    }
+                }
+            }
+        }
+
         IRequest<?> request = getOwnBuilding().getCompletedRequests(worker.getCitizenData()).stream().findFirst().orElse(null);
         if (request == null)
         {
             request = getOwnBuilding().getOpenRequests(worker.getCitizenData()).stream().findFirst().orElse(null);
         }
 
-        worker.getCitizenStatusHandler().setLatestStatus(new TextComponentTranslation("com.minecolonies.coremod.status.waiting"), request.getShortDisplayString());
+        worker.getCitizenStatusHandler().setLatestStatus(new TranslationTextComponent("com.minecolonies.coremod.status.waiting"), request.getShortDisplayString());
     }
 
     /**
@@ -521,30 +546,28 @@ public abstract class AbstractEntityAIBasic<J extends AbstractJob> extends Abstr
     @NotNull
     private IAIState lookForRequests()
     {
-        if (!this.getOwnBuilding().hasWorkerOpenRequestsFiltered(worker.getCitizenData(), r -> !worker.getCitizenData().isRequestAsync(r.getToken()))
+        if (!this.getOwnBuilding().hasWorkerOpenRequestsFiltered(worker.getCitizenData(), r -> !worker.getCitizenData().isRequestAsync(r.getId()))
               && !getOwnBuilding().hasCitizenCompletedRequests(worker.getCitizenData()))
         {
             return afterRequestPickUp();
         }
         if (!walkToBuilding() && getOwnBuilding().hasCitizenCompletedRequests(worker.getCitizenData()))
         {
-            delay += DELAY_RECHECK;
-
             @SuppressWarnings(RAWTYPES) final ImmutableList<IRequest> completedRequests = getOwnBuilding().getCompletedRequests(worker.getCitizenData());
 
-            completedRequests.stream().filter(r -> !(r.canBeDelivered())).forEach(r -> getOwnBuilding().markRequestAsAccepted(worker.getCitizenData(), r.getToken()));
+            completedRequests.stream().filter(r -> !(r.canBeDelivered())).forEach(r -> getOwnBuilding().markRequestAsAccepted(worker.getCitizenData(), r.getId()));
             final IRequest<?> firstDeliverableRequest = completedRequests.stream().filter(IRequest::canBeDelivered).findFirst().orElse(null);
 
             if (firstDeliverableRequest != null)
             {
                 boolean async = false;
-                if (worker.getCitizenData().isRequestAsync(firstDeliverableRequest.getToken()))
+                if (worker.getCitizenData().isRequestAsync(firstDeliverableRequest.getId()))
                 {
                     async = true;
-                    job.getAsyncRequests().remove(firstDeliverableRequest.getToken());
+                    job.getAsyncRequests().remove(firstDeliverableRequest.getId());
                 }
 
-                getOwnBuilding().markRequestAsAccepted(worker.getCitizenData(), firstDeliverableRequest.getToken());
+                getOwnBuilding().markRequestAsAccepted(worker.getCitizenData(), firstDeliverableRequest.getId());
                 final List<IItemHandler> validHandlers = Lists.newArrayList();
                 validHandlers.add(worker.getItemHandlerCitizen());
                 validHandlers.addAll(InventoryUtils.getItemHandlersFromProvider(getOwnBuilding()));
@@ -554,11 +577,11 @@ public abstract class AbstractEntityAIBasic<J extends AbstractJob> extends Abstr
                 {
                     final List<ItemStack> niceToHave = itemsNiceToHave();
                     final List<ItemStack> contained = InventoryUtils.getContainedFromItemHandler(firstDeliverableRequest.getDeliveries(), worker.getItemHandlerCitizen());
-                    final List<ItemStack> missing = InventoryUtils.getMissingFromItemHandler(firstDeliverableRequest.getDeliveries(), worker.getItemHandlerCitizen());
+
                     InventoryUtils.moveItemStacksWithPossibleSwap(
                       worker.getItemHandlerCitizen(),
                       InventoryUtils.getItemHandlersFromProvider(getOwnBuilding()),
-                      missing,
+                      firstDeliverableRequest.getDeliveries(),
                       itemStack ->
                         contained.stream().anyMatch(stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(itemStack, stack)) ||
                         niceToHave.stream().anyMatch(stack -> ItemStackUtils.compareItemStacksIgnoreStackSize(itemStack, stack))
@@ -614,10 +637,10 @@ public abstract class AbstractEntityAIBasic<J extends AbstractJob> extends Abstr
      */
     protected final boolean walkToBuilding()
     {
-        @Nullable final AbstractBuildingWorker ownBuilding = getOwnBuilding();
+        @Nullable final IBuildingWorker ownBuilding = getOwnBuilding();
         //Return true if the building is null to stall the worker
         return ownBuilding == null
-                 || walkToBlock(ownBuilding.getLocation());
+                 || walkToBlock(ownBuilding.getPosition());
     }
 
     /**
@@ -628,12 +651,12 @@ public abstract class AbstractEntityAIBasic<J extends AbstractJob> extends Abstr
      */
     public boolean isInHut(@Nullable final Predicate<ItemStack> is)
     {
-        @Nullable final AbstractBuildingWorker building = getOwnBuilding();
+        @Nullable final IBuildingWorker building = getOwnBuilding();
 
         boolean hasItem;
         if (building != null)
         {
-            hasItem = isInTileEntity(building.getTileEntity(), is);
+            hasItem = building.getTileEntity().hasItemStack(is);
 
             if (hasItem)
             {
@@ -645,7 +668,7 @@ public abstract class AbstractEntityAIBasic<J extends AbstractJob> extends Abstr
                 final TileEntity entity = world.getTileEntity(pos);
                 if (entity instanceof TileEntityChest)
                 {
-                    hasItem = isInTileEntity((TileEntityChest) entity, is);
+                    hasItem = isInTileEntity(entity, is);
 
                     if (hasItem)
                     {
@@ -666,7 +689,7 @@ public abstract class AbstractEntityAIBasic<J extends AbstractJob> extends Abstr
      */
     public boolean isInHut(@Nullable final ItemStack is)
     {
-        @Nullable final AbstractBuildingWorker building = getOwnBuilding();
+        @Nullable final IBuildingWorker building = getOwnBuilding();
 
         boolean hasItem;
         if (building != null)
@@ -705,6 +728,11 @@ public abstract class AbstractEntityAIBasic<J extends AbstractJob> extends Abstr
     protected final boolean walkToBlock(@NotNull final BlockPos stand)
     {
         return walkToBlock(stand, DEFAULT_RANGE_FOR_DELAY);
+    }
+
+    public boolean isInTileEntity(final AbstractTileEntityColonyBuilding entity, @NotNull final Predicate<ItemStack> itemStackSelectionPredicate)
+    {
+        return isInTileEntity((TileEntity) entity, itemStackSelectionPredicate);
     }
 
     /**
@@ -764,6 +792,11 @@ public abstract class AbstractEntityAIBasic<J extends AbstractJob> extends Abstr
         this.delay = timeout;
     }
 
+    public boolean isInTileEntity(final AbstractTileEntityColonyBuilding entity, final ItemStack is)
+    {
+        return isInTileEntity((TileEntity) entity, is);
+    }
+
     /**
      * Finds the first @see ItemStack the type of {@code is}.
      * It will be taken from the chest and placed in the worker inventory.
@@ -774,7 +807,7 @@ public abstract class AbstractEntityAIBasic<J extends AbstractJob> extends Abstr
      * @param itemStackSelectionPredicate the criteria.
      * @return true if found the stack.
      */
-    public boolean isInTileEntity(final TileEntityChest entity, @NotNull final Predicate<ItemStack> itemStackSelectionPredicate)
+    public boolean isInTileEntity(final TileEntity entity, @NotNull final Predicate<ItemStack> itemStackSelectionPredicate)
     {
         return InventoryFunctions
                  .matchFirstInProviderWithAction(
@@ -896,10 +929,10 @@ public abstract class AbstractEntityAIBasic<J extends AbstractJob> extends Abstr
     protected void cancelAsynchRequestForArmor(final IToolType armorType)
     {
         final List<IRequest<? extends Tool>> openRequests =
-          getOwnBuilding().getOpenRequestsOfTypeFiltered(worker.getCitizenData(), TypeToken.of(Tool.class), iRequest -> iRequest.getRequest().getToolClass() == armorType);
+          getOwnBuilding().getOpenRequestsOfTypeFiltered(worker.getCitizenData(), TypeConstants.TOOL, iRequest -> iRequest.getRequest().getToolClass() == armorType);
         for (final IRequest token : openRequests)
         {
-            worker.getCitizenColonyHandler().getColony().getRequestManager().updateRequestState(token.getToken(), RequestState.COMPLETED);
+            worker.getCitizenColonyHandler().getColony().getRequestManager().updateRequestState(token.getId(), RequestState.CANCELLED);
         }
     }
 
@@ -946,7 +979,7 @@ public abstract class AbstractEntityAIBasic<J extends AbstractJob> extends Abstr
      */
     public boolean retrieveToolInHut(final IToolType toolType, final int minimalLevel)
     {
-        @Nullable final AbstractBuildingWorker building = getOwnBuilding();
+        @Nullable final IBuildingWorker building = getOwnBuilding();
 
         if (building != null)
         {
@@ -958,7 +991,7 @@ public abstract class AbstractEntityAIBasic<J extends AbstractJob> extends Abstr
             for (final BlockPos pos : building.getAdditionalCountainers())
             {
                 final TileEntity entity = world.getTileEntity(pos);
-                if (entity instanceof TileEntityChest && retrieveToolInTileEntity((TileEntityChest) entity, toolType, minimalLevel, getOwnBuilding().getMaxToolLevel()))
+                if (entity instanceof TileEntityChest && retrieveToolInTileEntity(entity, toolType, minimalLevel, getOwnBuilding().getMaxToolLevel()))
                 {
                     return true;
                 }
@@ -978,22 +1011,25 @@ public abstract class AbstractEntityAIBasic<J extends AbstractJob> extends Abstr
     @NotNull
     private IAIState dumpInventory()
     {
-        if (!worker.isWorkerAtSiteWithMove(getOwnBuilding().getLocation(), DEFAULT_RANGE_FOR_DELAY))
+        if (!worker.isWorkerAtSiteWithMove(getOwnBuilding().getPosition(), DEFAULT_RANGE_FOR_DELAY))
         {
             return INVENTORY_FULL;
         }
 
         if (InventoryUtils.isProviderFull(getOwnBuilding()))
         {
-            if (!getOwnBuilding().getPriorityState())
+            if (!getOwnBuilding().isPriorityStatic())
             {
                 getOwnBuilding().alterPickUpPriority(MAX_PRIO);
             }
-            chatSpamFilter.talkWithoutSpam(COM_MINECOLONIES_COREMOD_ENTITY_WORKER_INVENTORYFULLCHEST);
+            if ( worker.getCitizenData() != null )
+            {
+                worker.getCitizenData().triggerInteraction(new StandardInteractionResponseHandler(new TranslationTextComponent(COM_MINECOLONIES_COREMOD_ENTITY_WORKER_INVENTORYFULLCHEST), ChatPriority.IMPORTANT));
+            }
+
         }
         else if (dumpOneMoreSlot())
         {
-            delay += DELAY_RECHECK;
             return INVENTORY_FULL;
         }
 
@@ -1003,6 +1039,10 @@ public abstract class AbstractEntityAIBasic<J extends AbstractJob> extends Abstr
         this.itemsNiceToHave().forEach(this::isInHut);
         // we dumped the inventory, reset actions done
         this.clearActionsDone();
+        if (!getOwnBuilding().isPriorityStatic())
+        {
+            getOwnBuilding().alterPickUpPriority(1);
+        }
         return afterDump();
     }
 
@@ -1027,6 +1067,7 @@ public abstract class AbstractEntityAIBasic<J extends AbstractJob> extends Abstr
      *
      * @return true if is has to dump more.
      */
+    @SuppressWarnings("PMD.PrematureDeclaration")
     private boolean dumpOneMoreSlot()
     {
         if (walkToBuilding())
@@ -1034,10 +1075,20 @@ public abstract class AbstractEntityAIBasic<J extends AbstractJob> extends Abstr
             return true;
         }
 
-        @Nullable final AbstractBuildingWorker buildingWorker = getOwnBuilding();
+        @Nullable final IBuildingWorker buildingWorker = getOwnBuilding();
 
-        final ItemStack stackToDump = worker.getInventoryCitizen().getStackInSlot(slotAt);
+        ItemStack stackToDump = worker.getInventoryCitizen().getStackInSlot(slotAt);
         final int totalSize = worker.getInventoryCitizen().getSizeInventory();
+
+        while (stackToDump.isEmpty())
+        {
+            if (slotAt >= totalSize)
+            {
+                return false;
+            }
+            slotAt++;
+            stackToDump = worker.getInventoryCitizen().getStackInSlot(slotAt);
+        }
 
         boolean dumpAnyway = false;
         if (slotAt + MIN_OPEN_SLOTS * 2 >= totalSize)
@@ -1134,9 +1185,10 @@ public abstract class AbstractEntityAIBasic<J extends AbstractJob> extends Abstr
     {
         final IToolType toolType = WorkerUtil.getBestToolForBlock(target);
         final int required = WorkerUtil.getCorrectHavestLevelForBlock(target);
-        if (getOwnBuilding().getMaxToolLevel() < required)
+        if (getOwnBuilding().getMaxToolLevel() < required && worker.getCitizenData() != null)
         {
-            chatSpamFilter.talkWithoutSpam(BUILDING_LEVEL_TOO_LOW, new ItemStack(target).getDisplayName(), pos.toString());
+            worker.getCitizenData().triggerInteraction(new PosBasedInteractionResponseHandler(
+              new TranslationTextComponent(BUILDING_LEVEL_TOO_LOW, new ItemStack(target).getDisplayName(), pos.getX(), pos.getY(), pos.getZ()), ChatPriority.IMPORTANT, new TranslationTextComponent(BUILDING_LEVEL_TOO_LOW), pos));
         }
         updateToolFlag(toolType, required);
     }
@@ -1454,15 +1506,33 @@ public abstract class AbstractEntityAIBasic<J extends AbstractJob> extends Abstr
     }
 
     /**
-     * Worker executes {@link EntityAIStatePausedHandler}.
-     *
-     * @return <code>State.PAUSED</code>
+     * Paused activity
+     * @return next state
      */
     private IAIState bePaused()
     {
-        EntityAIStatePausedHandler.doPause(worker, getOwnBuilding());
-        setDelay(WALK_DELAY);
-        return PAUSED;
+        if (!worker.getNavigator().noPath())
+        {
+            return null;
+        }
+
+        // Pick random activity.
+        final int percent = worker.getRNG().nextInt(ONE_HUNDRED_PERCENT);
+        if (percent < VISIT_BUILDING_CHANCE)
+        {
+            worker.getNavigator().tryMoveToBlockPos(getOwnBuilding().getPosition(), worker.getRNG().nextBoolean() ? DEFAULT_SPEED * 1.5D : DEFAULT_SPEED * 2.2D);
+        }
+        else if (percent < WANDER_CHANCE)
+        {
+            Vec3d vec3d = RandomPositionGenerator.getLandPos(worker, 10, 7);
+            if (vec3d != null)
+            {
+                vec3d = new Vec3d(vec3d.x, BlockPosUtil.getValidHeight(vec3d, CompatibilityUtils.getWorldFromCitizen(worker)), vec3d.z);
+                worker.getNavigator().tryMoveToXYZ(vec3d.x, vec3d.y, vec3d.z, DEFAULT_SPEED);
+            }
+        }
+
+        return null;
     }
 
     /**

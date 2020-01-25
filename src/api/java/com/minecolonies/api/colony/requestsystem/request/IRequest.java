@@ -8,7 +8,6 @@ import com.minecolonies.api.colony.requestsystem.manager.IRequestManager;
 import com.minecolonies.api.colony.requestsystem.requestable.IRequestable;
 import com.minecolonies.api.colony.requestsystem.requester.IRequester;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
-import com.minecolonies.api.util.ItemStackUtils;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
@@ -44,7 +43,7 @@ public interface IRequest<R extends IRequestable>
      * @param <T> generic token.
      * @return the token representing the request outside of the management system.
      */
-    <T extends IToken> T getToken();
+    <T extends IToken> T getId();
 
     /**
      * Used to determine which type of request this is.
@@ -53,7 +52,7 @@ public interface IRequest<R extends IRequestable>
      * @return The class that represents this Type of Request.
      */
     @NotNull
-    TypeToken<? extends R> getRequestType();
+    TypeToken<? extends R> getType();
 
     /**
      * Returns the current state of the request.

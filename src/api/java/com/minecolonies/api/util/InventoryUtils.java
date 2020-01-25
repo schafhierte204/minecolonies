@@ -13,6 +13,7 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
 import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.items.wrapper.InvWrapper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -276,6 +277,14 @@ public class InventoryUtils
         return itemHandler == null ? 0 : filterItemHandler(itemHandler, itemStackSelectionPredicate).stream().mapToInt(ItemStackUtils::getSize).sum();
     }
 
+    public static int getItemCountInItemHandlers(@Nullable final Collection<IItemHandler> itemHandlers, @NotNull final Predicate<ItemStack> itemStackPredicate)
+    {
+        return itemHandlers.stream().filter(Objects::nonNull)
+                 .flatMap(handler -> filterItemHandler(handler, itemStackPredicate).stream())
+                 .mapToInt(ItemStackUtils::getSize)
+                 .sum();
+    }
+
     /**
      * Checks if a player has a block in the {@link IItemHandler}. Checked by
      * {@link #getItemCountInItemHandler(IItemHandler, Block, int)} &gt; 0;
@@ -521,22 +530,22 @@ public class InventoryUtils
     public static Set<IItemHandler> getItemHandlersFromProvider(@NotNull final ICapabilityProvider provider)
     {
         final Set<IItemHandler> handlerList = Arrays.stream(EnumFacing.VALUES)
-                                                .filter(facing -> provider.hasCapability(ITEM_HANDLER_CAPABILITY, facing))
-                                                .map(facing -> provider.getCapability(ITEM_HANDLER_CAPABILITY, facing))
-                                                .filter(Objects::nonNull)
-                                                .collect(Collectors.toSet());
+          .filter(facing -> provider.hasCapability(ITEM_HANDLER_CAPABILITY, facing))
+          .map(facing -> provider.getCapability(ITEM_HANDLER_CAPABILITY, facing))
+          .filter(Objects::nonNull)
+          .collect(Collectors.toSet());
+
 
         if (provider.hasCapability(ITEM_HANDLER_CAPABILITY, null))
         {
             final IItemHandler nullHandler = provider.getCapability(ITEM_HANDLER_CAPABILITY, null);
-            if (!handlerList.contains(nullHandler))
+            if (nullHandler != null)
             {
                 handlerList.add(nullHandler);
             }
         }
 
         handlerList.removeIf(Objects::isNull);
-
         return handlerList;
     }
 
@@ -787,7 +796,14 @@ public class InventoryUtils
      */
     public static boolean hasItemInProvider(@NotNull final ICapabilityProvider Provider, @NotNull final Predicate<ItemStack> itemStackSelectionPredicate)
     {
-        return getItemCountInProvider(Provider, itemStackSelectionPredicate) > 0;
+        for (IItemHandler handler : getItemHandlersFromProvider(Provider))
+        {
+            if (findFirstSlotInItemHandlerWith(handler, itemStackSelectionPredicate) != -1)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -2057,7 +2073,7 @@ public class InventoryUtils
     }
 
     /**
-     * Remove a list of stacks from a given Itemhandler
+     * Remove a stack from a given Itemhandler
      *
      * @param handler the itemHandler.
      * @param input   the stack to remove.
@@ -2543,15 +2559,45 @@ public class InventoryUtils
                 if (removeStackFromItemHandler(sourceInventory, itemStack))
                 {
                     ItemStack forcingResult = forceItemStackToItemHandler(targetInventory, itemStack, wantToKeep);
-                    addItemStackToItemHandler(sourceInventory, forcingResult);
 
-                    break;
+                    if (forcingResult != null && !forcingResult.isEmpty())
+                    {
+                        addItemStackToItemHandler(sourceInventory, forcingResult);
+                    }
                 }
             }
-
 			return false;
         }
 
         return true;
+    }
+
+    /**
+     * Search for a certain itemStack in the inventory and decrease it by 1.
+     * @param invWrapper the inventory item handler.
+     * @param itemStack the itemStack to decrease.
+     */
+    public static void reduceStackInItemHandler(final InvWrapper invWrapper, final ItemStack itemStack)
+    {
+        reduceStackInItemHandler(invWrapper, itemStack, 1);
+    }
+
+    /**
+     * Search for a certain itemStack in the inventory and decrease it by a certain quantity.
+     * @param invWrapper the inventory item handler.
+     * @param itemStack the itemStack to decrease.
+     * @param quantity the quantity.
+     */
+    public static void reduceStackInItemHandler(final InvWrapper invWrapper, final ItemStack itemStack, final int quantity)
+    {
+        for (int i = 0; i < invWrapper.getSlots(); i++)
+        {
+            if(invWrapper.getStackInSlot(i).isItemEqual(itemStack))
+            {
+                invWrapper.getStackInSlot(i).shrink(quantity);
+                return;
+            }
+        }
+
     }
 }

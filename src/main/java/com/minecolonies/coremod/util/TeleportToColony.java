@@ -1,10 +1,9 @@
 package com.minecolonies.coremod.util;
 
 import com.minecolonies.api.colony.IColony;
+import com.minecolonies.api.colony.IColonyManager;
+import com.minecolonies.api.colony.buildings.workerbuildings.ITownHall;
 import com.minecolonies.api.configuration.Configurations;
-import com.minecolonies.coremod.colony.Colony;
-import com.minecolonies.coremod.colony.ColonyManager;
-import com.minecolonies.coremod.colony.buildings.workerbuildings.BuildingTownHall;
 import com.minecolonies.coremod.commands.MinecoloniesCommand;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.entity.Entity;
@@ -17,6 +16,9 @@ import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.Teleporter;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.fml.common.FMLCommonHandler;
+
+import java.util.regex.Pattern;
+
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -58,6 +60,7 @@ public final class TeleportToColony
         final EntityPlayer playerToTeleport;
         final IColony colony;
         final int colonyId;
+        final int dimensionId;
         final Entity senderEntity = sender.getCommandSenderEntity();
         //see if sent by a player and grab their name and Get the players Colony ID that sent the command
         if (senderEntity instanceof EntityPlayer)
@@ -66,20 +69,31 @@ public final class TeleportToColony
             if (args.length == 0)
             {
                 playerToTeleport = (EntityPlayer) sender;
-                colony = ColonyManager.getIColonyByOwner(((EntityPlayer) sender).world, (EntityPlayer) sender);
+                colony = IColonyManager.getInstance().getIColonyByOwner(((EntityPlayer) sender).world, (EntityPlayer) sender);
 
                 if(colony == null)
                 {
                     return;
                 }
                 colonyId = colony.getID();
+                dimensionId = colony.getDimension();
             }
             else
             {
                 //if there is args then this will be to a friends colony TP and we use the Colony ID they specify
                 //will need to see if they friendly to destination colony
                 playerToTeleport = (EntityPlayer) sender;
-                colonyId = Integer.valueOf(args[0]);
+                if (args[0].contains("|"))
+                {
+                	String[] split = args[0].split(Pattern.quote("|"));
+                	dimensionId = Integer.valueOf(split[0]);
+                	colonyId = Integer.valueOf(split[1]);
+                }
+                else 
+                {
+                    colonyId = Integer.valueOf(args[0]);
+                	dimensionId = senderEntity.getEntityWorld().provider.getDimension();
+                }
             }
         }
         else
@@ -90,7 +104,7 @@ public final class TeleportToColony
 
         if (MinecoloniesCommand.canExecuteCommand((EntityPlayer) sender))
         {
-            teleportPlayer(playerToTeleport, colonyId, sender);
+            teleportPlayer(playerToTeleport, colonyId, dimensionId, sender);
             return;
         }
         sender.sendMessage(new TextComponentString("Please wait at least " + Configurations.gameplay.teleportBuffer + " seconds to teleport again"));
@@ -102,10 +116,11 @@ public final class TeleportToColony
      * @param colID            the senders colony ID.
      * @param playerToTeleport the player which shall be teleported.
      */
-    private static void teleportPlayer(final EntityPlayer playerToTeleport, final int colID, final ICommandSender sender)
+    @SuppressWarnings("PMD.PrematureDeclaration")
+    private static void teleportPlayer(final EntityPlayer playerToTeleport, final int colID, final int dimID, final ICommandSender sender)
     {
-        final Colony colony = ColonyManager.getColonyByWorld(colID, FMLCommonHandler.instance().getMinecraftServerInstance().getWorld(0));
-        final BuildingTownHall townHall = colony.getBuildingManager().getTownHall();
+        final IColony colony = IColonyManager.getInstance().getColonyByWorld(colID, FMLCommonHandler.instance().getMinecraftServerInstance().getWorld(dimID));
+        final ITownHall townHall = colony.getBuildingManager().getTownHall();
 
         if (townHall == null)
         {
@@ -113,10 +128,10 @@ public final class TeleportToColony
             return;
         }
 
-        final BlockPos position = townHall.getLocation();
+        final BlockPos position = townHall.getPosition();
 
         final int dimension = playerToTeleport.getEntityWorld().provider.getDimension();
-        final int colonyDimension = townHall.getColony().getDimension();
+        final int colonyDimension = colony.getDimension();
 
         if (colID < MIN_COLONY_ID)
         {

@@ -1,10 +1,18 @@
 package com.minecolonies.coremod.client.gui;
 
+import com.ldtteam.structures.helpers.Settings;
+import com.ldtteam.structures.helpers.Structure;
+import com.ldtteam.structurize.Structurize;
+import com.ldtteam.structurize.management.StructureName;
+import com.ldtteam.structurize.management.Structures;
+import com.ldtteam.structurize.network.messages.SchematicRequestMessage;
+import com.ldtteam.structurize.util.BlockInfo;
+import com.ldtteam.structurize.util.PlacementSettings;
+import com.ldtteam.structurize.util.StructurePlacementUtils;
+import com.minecolonies.api.colony.IColonyView;
+import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.crafting.ItemStorage;
-import com.minecolonies.api.util.BlockUtils;
-import com.minecolonies.api.util.ItemStackUtils;
-import com.minecolonies.api.util.LanguageHandler;
-import com.minecolonies.api.util.Log;
+import com.minecolonies.api.util.*;
 import com.minecolonies.api.util.constant.Constants;
 import com.minecolonies.blockout.Color;
 import com.minecolonies.blockout.Pane;
@@ -14,21 +22,11 @@ import com.minecolonies.blockout.controls.Label;
 import com.minecolonies.blockout.views.DropDownList;
 import com.minecolonies.blockout.views.ScrollingList;
 import com.minecolonies.coremod.MineColonies;
-import com.minecolonies.coremod.colony.Colony;
-import com.minecolonies.coremod.colony.ColonyView;
 import com.minecolonies.coremod.colony.buildings.views.AbstractBuildingBuilderView;
-import com.minecolonies.coremod.colony.buildings.views.AbstractBuildingView;
 import com.minecolonies.coremod.colony.buildings.workerbuildings.BuildingMiner;
 import com.minecolonies.coremod.entity.ai.basic.AbstractEntityAIStructure;
 import com.minecolonies.coremod.network.messages.BuildRequestMessage;
 import com.minecolonies.coremod.network.messages.BuildingSetStyleMessage;
-import com.minecolonies.coremod.util.StructureWrapper;
-import com.structurize.coremod.Structurize;
-import com.structurize.coremod.management.StructureName;
-import com.structurize.coremod.management.Structures;
-import com.structurize.coremod.network.messages.SchematicRequestMessage;
-import com.structurize.structures.helpers.Settings;
-import com.structurize.structures.helpers.Structure;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockBed;
 import net.minecraft.block.BlockDoor;
@@ -36,11 +34,11 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.Mirror;
 import net.minecraft.util.Tuple;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraft.world.gen.structure.template.Template;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -66,7 +64,7 @@ public class WindowBuildBuilding extends AbstractWindowSkeleton
     /**
      * The view of the current building.
      */
-    private final AbstractBuildingView building;
+    private final IBuildingView building;
 
     /**
      * Contains all resources needed for a certain build.
@@ -104,16 +102,19 @@ public class WindowBuildBuilding extends AbstractWindowSkeleton
      * Constructor for the window when the player wants to hire a worker for a certain job.
      *
      * @param c          the colony view.
-     * @param buildingId the building position.
+     * @param building the building.
      */
-    public WindowBuildBuilding(final ColonyView c, final BlockPos buildingId)
+    public WindowBuildBuilding(final IColonyView c, final IBuildingView building)
     {
         super(Constants.MOD_ID + BUILDING_NAME_RESOURCE_SUFFIX);
-        building = c.getBuilding(buildingId);
+        this.building = building;
+
         initStyleNavigation();
         registerButton(BUTTON_BUILD, this::confirmClicked);
         registerButton(BUTTON_CANCEL, this::cancelClicked);
+        registerButton(BUTTON_REPAIR, this::repairClicked);
         registerButton(BUTTON_MOVE_BUILDING, this::moveBuildingClicked);
+
         final Button buttonBuild = findPaneOfTypeByID(BUTTON_BUILD, Button.class);
         if (building.getBuildingLevel() == 0)
         {
@@ -135,7 +136,7 @@ public class WindowBuildBuilding extends AbstractWindowSkeleton
      */
     private void moveBuildingClicked()
     {
-        final WindowMoveBuilding window = new WindowMoveBuilding(building.getLocation(), building, styles.get(stylesDropDownList.getSelectedIndex()));
+        final WindowMoveBuilding window = new WindowMoveBuilding(building.getPosition(), building, styles.get(stylesDropDownList.getSelectedIndex()));
         window.open();
     }
 
@@ -166,6 +167,17 @@ public class WindowBuildBuilding extends AbstractWindowSkeleton
     }
 
     /**
+     * Action when repair button is clicked.
+     */
+    private void repairClicked()
+    {
+        final BlockPos builder = buildersDropDownList.getSelectedIndex() == 0 ? BlockPos.ORIGIN : builders.get(buildersDropDownList.getSelectedIndex()).getSecond();
+        MineColonies.getNetwork().sendToServer(new BuildingSetStyleMessage(building, styles.get(stylesDropDownList.getSelectedIndex())));
+        MineColonies.getNetwork().sendToServer(new BuildRequestMessage(building, BuildRequestMessage.REPAIR, builder));
+        cancelClicked();
+    }
+
+    /**
      * Update the builders list but try to keep the same one.
      */
     private void updateBuilders()
@@ -174,8 +186,9 @@ public class WindowBuildBuilding extends AbstractWindowSkeleton
         builders.add(new Tuple<>(LanguageHandler.format("com.minecolonies.coremod.job.Builder") + ":", BlockPos.ORIGIN));
         builders.addAll(building.getColony().getBuildings().stream()
                           .filter(build -> build instanceof AbstractBuildingBuilderView && !((AbstractBuildingBuilderView) build).getWorkerName().isEmpty() && !(build instanceof BuildingMiner.View))
-                          .map(build -> new Tuple<>(((AbstractBuildingBuilderView) build).getWorkerName(), build.getLocation()))
+                          .map(build -> new Tuple<>(((AbstractBuildingBuilderView) build).getWorkerName(), build.getPosition()))
                           .collect(Collectors.toList()));
+
         initBuilderNavigation();
     }
 
@@ -219,12 +232,11 @@ public class WindowBuildBuilding extends AbstractWindowSkeleton
                                 building.getBuildingMaxLevel() : (building.getBuildingLevel() + 1);
         final StructureName sn = new StructureName(Structures.SCHEMATICS_PREFIX, styles.get(stylesDropDownList.getSelectedIndex()),
           building.getSchematicName() + nextLevel);
-        final StructureWrapper wrapper = new StructureWrapper(world, sn.toString());
-        final Structure structure = wrapper.getStructure().getStructure();
+        final Structure structure = new Structure(world, sn.toString(), new PlacementSettings());
         final String md5 = Structures.getMD5(sn.toString());
-        if (structure.isTemplateMissing() || !structure.isCorrectMD5(md5))
+        if (structure.isBluePrintMissing() || !structure.isCorrectMD5(md5))
         {
-            if (structure.isTemplateMissing())
+            if (structure.isBluePrintMissing())
             {
                 Log.getLogger().info("Template structure " + sn + " missing");
             }
@@ -245,51 +257,38 @@ public class WindowBuildBuilding extends AbstractWindowSkeleton
             }
         }
 
-        wrapper.setPosition(building.getLocation());
-        wrapper.rotate(building.getRotation(), world, building.getLocation(), building.isMirrored() ? Mirror.FRONT_BACK : Mirror.NONE);
-        while (wrapper.findNextBlock())
+        structure.setPosition(building.getPosition());
+        structure.rotate(BlockPosUtil.getRotationFromRotations(building.getRotation()), world, building.getPosition(), building.isMirrored() ? Mirror.FRONT_BACK : Mirror.NONE);
+        while (structure.findNextBlock())
         {
-            @Nullable final Template.BlockInfo blockInfo = wrapper.getBlockInfo();
-            @Nullable final Template.EntityInfo entityInfo = wrapper.getEntityinfo();
+            @Nullable final BlockInfo blockInfo = structure.getBlockInfo();
+            @Nullable final IBlockState blockState = blockInfo.getState();
 
-            if (entityInfo != null)
-            {
-                for (final ItemStack stack : ItemStackUtils.getListOfStackForEntityInfo(entityInfo, world, Minecraft.getMinecraft().player))
-                {
-                    if (!ItemStackUtils.isEmpty(stack))
-                    {
-                        addNeededResource(stack, 1);
-                    }
-                }
-            }
-
-            if (blockInfo == null)
+            if (blockState == null)
             {
                 continue;
             }
 
-            @Nullable final IBlockState blockState = blockInfo.blockState;
             @Nullable final Block block = blockState.getBlock();
 
-            if (wrapper.isStructureBlockEqualWorldBlock()
+            if (StructurePlacementUtils.isStructureBlockEqualWorldBlock(world, structure.getBlockPosition(), blockState)
                   || (blockState.getBlock() instanceof BlockBed && blockState.getValue(BlockBed.PART).equals(BlockBed.EnumPartType.FOOT))
                   || (blockState.getBlock() instanceof BlockDoor && blockState.getValue(BlockDoor.HALF).equals(BlockDoor.EnumDoorHalf.UPPER)))
             {
                 continue;
             }
 
-            if (block != null
-                  && block != Blocks.AIR
+            if (block != Blocks.AIR
                   && !AbstractEntityAIStructure.isBlockFree(block, 0)
-                  && block != com.structurize.coremod.blocks.ModBlocks.blockSolidSubstitution
-                  && block != com.structurize.coremod.blocks.ModBlocks.blockSubstitution)
+                  && block != com.ldtteam.structurize.blocks.ModBlocks.blockSolidSubstitution
+                  && block != com.ldtteam.structurize.blocks.ModBlocks.blockSubstitution)
             {
-                if (wrapper.getBlockInfo().tileentityData != null)
+                if (structure.getBlockInfo().getTileEntityData() != null)
                 {
                     final List<ItemStack> itemList = new ArrayList<>();
-                    if (wrapper.getBlockInfo() != null && wrapper.getBlockInfo().tileentityData != null)
+                    if (structure.getBlockInfo().getState() != null && structure.getBlockInfo().getTileEntityData() != null)
                     {
-                        itemList.addAll(ItemStackUtils.getItemStacksOfTileEntity(wrapper.getBlockInfo().tileentityData, world));
+                        itemList.addAll(ItemStackUtils.getItemStacksOfTileEntity(structure.getBlockInfo().getTileEntityData(), world));
                     }
 
                     for (final ItemStack stack : itemList)
@@ -301,6 +300,21 @@ public class WindowBuildBuilding extends AbstractWindowSkeleton
                 addNeededResource(BlockUtils.getItemStackFromBlockState(blockState), 1);
             }
         }
+
+        for (final NBTTagCompound entityInfo : structure.getEntityData())
+        {
+            if (entityInfo != null)
+            {
+                for (final ItemStorage stack : ItemStackUtils.getListOfStackForEntityInfo(entityInfo, world, Minecraft.getMinecraft().player))
+                {
+                    if (!ItemStackUtils.isEmpty(stack.getItemStack()))
+                    {
+                        addNeededResource(stack.getItemStack(), 1);
+                    }
+                }
+            }
+        }
+
         window.findPaneOfTypeByID(LIST_RESOURCES, ScrollingList.class).refreshElementPanes();
         updateResourceList();
     }

@@ -154,7 +154,7 @@ public class Tool implements IDeliverable
 
     private Set<String> getToolClasses(final ItemStack stack)
     {
-        final Set set = new HashSet();
+        final Set<String> set = new HashSet<>();
 
         if(ItemStackUtils.isEmpty(stack))
         {
@@ -235,6 +235,12 @@ public class Tool implements IDeliverable
     public void setResult(@NotNull final ItemStack result)
     {
         this.result = result;
+    }
+
+    @Override
+    public IDeliverable copyWithCount(@NotNull final int newCount)
+    {
+        return new Tool(this.toolClass, this.minLevel, this.maxLevel, this.result);
     }
 
     @Override

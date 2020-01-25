@@ -39,8 +39,7 @@ public enum ActionMenuType implements IMenuType
       "loadBackup",
       ForgePermissionNodes.LOAD_BACKUP,
       LoadColonyBackupCommand.class,
-      new ActionArgument("colony", ActionArgumentType.INTEGER, ActionArgumentType.Is.REQUIRED),
-      new ActionArgument("dimension", ActionArgumentType.INTEGER, ActionArgumentType.Is.REQUIRED)
+      new ActionArgument("colony", ActionArgumentType.COLONY, ActionArgumentType.Is.REQUIRED)
 
     )),
     RAID_ALL_TONIGHT(new ActionMenu(
@@ -271,7 +270,7 @@ public enum ActionMenuType implements IMenuType
             "scan",
             ForgePermissionNodes.SCAN,
             ScanCommand.class,
-            new ActionArgument("player", ActionArgumentType.ONLINE_PLAYER, ActionArgumentType.Is.OPTIONAL),
+            new ActionArgument("player", ActionArgumentType.STRING, ActionArgumentType.Is.OPTIONAL),
             new ActionArgument("x1", ActionArgumentType.COORDINATE_X, ActionArgumentType.Is.REQUIRED),
             new ActionArgument("y1", ActionArgumentType.COORDINATE_Y, ActionArgumentType.Is.REQUIRED),
             new ActionArgument("z1", ActionArgumentType.COORDINATE_Z, ActionArgumentType.Is.REQUIRED),

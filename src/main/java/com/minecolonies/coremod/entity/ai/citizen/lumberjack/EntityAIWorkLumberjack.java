@@ -1,15 +1,17 @@
 package com.minecolonies.coremod.entity.ai.citizen.lumberjack;
 
+import com.minecolonies.api.colony.buildings.IBuilding;
+import com.minecolonies.api.colony.interactionhandling.TranslationTextComponent;
 import com.minecolonies.api.compatibility.Compatibility;
+import com.minecolonies.api.crafting.ItemStorage;
+import com.minecolonies.api.entity.ai.statemachine.AITarget;
+import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
+import com.minecolonies.api.entity.pathfinding.TreePathResult;
 import com.minecolonies.api.util.*;
 import com.minecolonies.api.util.constant.ToolType;
-import com.minecolonies.coremod.colony.buildings.AbstractBuilding;
 import com.minecolonies.coremod.colony.buildings.workerbuildings.BuildingLumberjack;
 import com.minecolonies.coremod.colony.jobs.JobLumberjack;
 import com.minecolonies.coremod.entity.ai.basic.AbstractEntityAIInteract;
-import com.minecolonies.coremod.entity.ai.statemachine.AITarget;
-import com.minecolonies.coremod.entity.ai.statemachine.states.IAIState;
-import com.minecolonies.coremod.entity.pathfinding.PathJobFindTree;
 import com.minecolonies.coremod.util.WorkerUtil;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockSapling;
@@ -21,14 +23,17 @@ import net.minecraft.util.EnumHand;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraftforge.items.wrapper.InvWrapper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
-import static com.minecolonies.coremod.entity.ai.statemachine.states.AIWorkerState.*;
+import static com.minecolonies.api.entity.ai.statemachine.states.AIWorkerState.*;
+import static com.minecolonies.api.util.constant.Constants.TICKS_SECOND;
 
 /**
  * The lumberjack AI class.
@@ -43,7 +48,7 @@ public class EntityAIWorkLumberjack extends AbstractEntityAIInteract<JobLumberja
     /**
      * The range in which the lumberjack searches for trees.
      */
-    private static final int SEARCH_RANGE = 50;
+    public static final int SEARCH_RANGE = 50;
 
     /**
      * If no trees are found, increment the range.
@@ -53,6 +58,11 @@ public class EntityAIWorkLumberjack extends AbstractEntityAIInteract<JobLumberja
      * If this limit is reached, no trees are found.
      */
     private static final int    SEARCH_LIMIT           = 150;
+
+    /**
+     * List of saplings.
+     */
+    private static final String SAPLINGS_LIST = "saplings";
 
     /**
      * Vertical range in which the worker picks up items.
@@ -88,7 +98,7 @@ public class EntityAIWorkLumberjack extends AbstractEntityAIInteract<JobLumberja
     /**
      * The minimum range the lumberjack has to reach in order to construct or clear.
      */
-    private static final int    MIN_WORKING_RANGE      = 1;
+    private static final int    MIN_WORKING_RANGE      = 2;
     /**
      * Time in ticks to wait before placing a sapling.
      * Is used to collect falling saplings from the ground.
@@ -133,9 +143,15 @@ public class EntityAIWorkLumberjack extends AbstractEntityAIInteract<JobLumberja
     private static final int MAX_BLOCKS_MINED = 32;
 
     /**
-     * Position where the Builders constructs from.
+     * Delay before going to gather after cutting a tree.
+     */
+    private static final int GATHERING_DELAY  = 3;
+
+    /**
+     * Position where the Lumberjack breaks from.
      */
     private BlockPos workFrom;
+
     /**
      * The time in ticks the lumberjack has waited already.
      * Directly connected with the MAX_WAITING_TIME.
@@ -162,12 +178,13 @@ public class EntityAIWorkLumberjack extends AbstractEntityAIInteract<JobLumberja
      * The active pathfinding job used to walk to trees.
      */
     @Nullable
-    private PathJobFindTree.TreePathResult pathResult;
+    private TreePathResult pathResult;
+
     /**
      * A counter by how much the tree search radius
      * has been increased by now.
      */
-    private int                            searchIncrement = 0;
+    private int searchIncrement = 0;
 
     /**
      * Create a new LumberjackAI.
@@ -179,13 +196,13 @@ public class EntityAIWorkLumberjack extends AbstractEntityAIInteract<JobLumberja
 
         super(job);
         super.registerTargets(
-          new AITarget(IDLE, START_WORKING),
-          new AITarget(START_WORKING, this::startWorkingAtOwnBuilding),
-          new AITarget(PREPARING, this::prepareForWoodcutting),
-          new AITarget(LUMBERJACK_SEARCHING_TREE, this::findTrees),
-          new AITarget(LUMBERJACK_CHOP_TREE, this::chopWood),
-          new AITarget(LUMBERJACK_GATHERING, this::gathering),
-          new AITarget(LUMBERJACK_NO_TREES_FOUND, this::waitBeforeCheckingAgain)
+          new AITarget(IDLE, START_WORKING, 1),
+          new AITarget(START_WORKING, this::startWorkingAtOwnBuilding, TICKS_SECOND),
+          new AITarget(PREPARING, this::prepareForWoodcutting, TICKS_SECOND),
+          new AITarget(LUMBERJACK_SEARCHING_TREE, this::findTrees, TICKS_SECOND),
+          new AITarget(LUMBERJACK_CHOP_TREE, this::chopWood, TICKS_SECOND),
+          new AITarget(LUMBERJACK_GATHERING, this::gathering, TICKS_SECOND),
+          new AITarget(LUMBERJACK_NO_TREES_FOUND, this::waitBeforeCheckingAgain, TICKS_SECOND)
         );
         worker.getCitizenExperienceHandler().setSkillModifier(STRENGTH_MULTIPLIER * worker.getCitizenData().getStrength()
                                                                 + CHARISMA_MULTIPLIER * worker.getCitizenData().getCharisma());
@@ -262,7 +279,7 @@ public class EntityAIWorkLumberjack extends AbstractEntityAIInteract<JobLumberja
     {
         if (job.tree == null)
         {
-            worker.getCitizenStatusHandler().setLatestStatus(new TextComponentTranslation("com.minecolonies.coremod.status.searchingtree"));
+            worker.getCitizenStatusHandler().setLatestStatus(new TranslationTextComponent("com.minecolonies.coremod.status.searchingtree"));
 
             return findTree();
         }
@@ -276,7 +293,7 @@ public class EntityAIWorkLumberjack extends AbstractEntityAIInteract<JobLumberja
      */
     private IAIState findTree()
     {
-        final AbstractBuilding building = getOwnBuilding();
+        final IBuilding building = getOwnBuilding();
 
         // Waiting for current path to finish
         if (pathResult != null && pathResult.isInProgress())
@@ -284,9 +301,30 @@ public class EntityAIWorkLumberjack extends AbstractEntityAIInteract<JobLumberja
             return getState();
         }
 
+
         if (pathResult == null || pathResult.treeLocation == null)
         {
-            pathResult = worker.getNavigator().moveToTree(SEARCH_RANGE + searchIncrement, 1.0D, ((BuildingLumberjack) building).getCopyOfAllowedItems(), worker.getCitizenColonyHandler().getColony());
+
+            final BuildingLumberjack buildingLumberjack = (BuildingLumberjack) building;
+            final Map<String, List<ItemStorage>> copy = buildingLumberjack.getCopyOfAllowedItems();
+            if (buildingLumberjack.shouldRestrict())
+            {
+                final BlockPos startPos = buildingLumberjack.getStartRestriction();
+                final BlockPos endPos = buildingLumberjack.getEndRestriction();
+
+                pathResult = worker.getNavigator().moveToTree(
+                        startPos, endPos,
+                        1.0D,
+                  copy.getOrDefault(SAPLINGS_LIST, Collections.emptyList()),
+                        worker.getCitizenColonyHandler().getColony()
+                );
+
+            }
+            else
+            {
+                pathResult = worker.getNavigator().moveToTree(SEARCH_RANGE + searchIncrement, 1.0D, copy.getOrDefault(SAPLINGS_LIST, Collections.emptyList()), worker.getCitizenColonyHandler().getColony());
+            }
+
             // Delay between area searches
             setDelay(100);
             return getState();
@@ -298,6 +336,7 @@ public class EntityAIWorkLumberjack extends AbstractEntityAIInteract<JobLumberja
         if (pathResult.isCancelled())
         {
             pathResult = null;
+            setDelay(TICKS_SECOND * GATHERING_DELAY);
             return LUMBERJACK_GATHERING;
         }
         return getState();
@@ -364,7 +403,7 @@ public class EntityAIWorkLumberjack extends AbstractEntityAIInteract<JobLumberja
      */
     private IAIState chopTree()
     {
-        worker.getCitizenStatusHandler().setLatestStatus(new TextComponentTranslation("com.minecolonies.coremod.status.chopping"));
+        worker.getCitizenStatusHandler().setLatestStatus(new TranslationTextComponent("com.minecolonies.coremod.status.chopping"));
 
         if (job.tree.hasLogs() || checkedInHut)
         {
@@ -396,6 +435,7 @@ public class EntityAIWorkLumberjack extends AbstractEntityAIInteract<JobLumberja
             incrementActionsDoneAndDecSaturation();
             building.getColony().getStatsManager().incrementStatistic("trees");
             workFrom = null;
+            setDelay(TICKS_SECOND * GATHERING_DELAY);
             return LUMBERJACK_GATHERING;
         }
 
@@ -501,7 +541,7 @@ public class EntityAIWorkLumberjack extends AbstractEntityAIInteract<JobLumberja
             return;
         }
         //now we seem to be stuck!
-        worker.getCitizenStatusHandler().setLatestStatus(new TextComponentTranslation("com.minecolonies.coremod.status.stuckinleaves"));
+        worker.getCitizenStatusHandler().setLatestStatus(new TranslationTextComponent("com.minecolonies.coremod.status.stuckinleaves"));
 
         tryGettingUnstuckFromLeaves();
     }
@@ -561,12 +601,12 @@ public class EntityAIWorkLumberjack extends AbstractEntityAIInteract<JobLumberja
     private boolean plantSapling(@NotNull final BlockPos location)
     {
         final Block worldBlock = world.getBlockState(location).getBlock();
-        if (worldBlock != Blocks.AIR && !(worldBlock instanceof BlockSapling))
+        if (worldBlock != Blocks.AIR && !(worldBlock instanceof BlockSapling) && worldBlock != Blocks.SNOW_LAYER)
         {
             return true;
         }
 
-        worker.getCitizenStatusHandler().setLatestStatus(new TextComponentTranslation("com.minecolonies.coremod.status.planting"));
+        worker.getCitizenStatusHandler().setLatestStatus(new TranslationTextComponent("com.minecolonies.coremod.status.planting"));
 
         final int saplingSlot = findSaplingSlot();
         final BlockPos dirtLocation = new BlockPos(location.getX(), location.getY() - 1, location.getZ());
@@ -692,7 +732,6 @@ public class EntityAIWorkLumberjack extends AbstractEntityAIInteract<JobLumberja
         while (!job.tree.getStumpLocations().isEmpty())
         {
             final BlockPos pos = job.tree.getStumpLocations().get(0);
-
             if ((BlockPosUtil.setBlock(world, pos, block.getStateFromMeta(stack.getMetadata()), 0x02) && getInventory().getStackInSlot(saplingSlot) != null)
                   || Objects.equals(world.getBlockState(pos), block.getStateFromMeta(stack.getMetadata())))
             {
@@ -737,7 +776,7 @@ public class EntityAIWorkLumberjack extends AbstractEntityAIInteract<JobLumberja
      */
     private IAIState gathering()
     {
-        worker.getCitizenStatusHandler().setLatestStatus(new TextComponentTranslation("com.minecolonies.coremod.status.gathering"));
+        worker.getCitizenStatusHandler().setLatestStatus(new TranslationTextComponent("com.minecolonies.coremod.status.gathering"));
 
         if (getItemsForPickUp() == null)
         {
