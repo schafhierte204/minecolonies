@@ -139,15 +139,19 @@ public final class MinecoloniesPlacementHandlers
         {
             if (world.getBlockState(pos).getBlock() == ModBlocks.blockRack)
             {
+                if (tileEntityData != null)
+                {
+                    handleTileEntityPlacement(tileEntityData, world, pos);
+                }
                 return blockState;
             }
+
+            world.setBlockState(pos, blockState, UPDATE_FLAG);
             
             if (tileEntityData != null)
             {
                 handleTileEntityPlacement(tileEntityData, world, pos);
             }
-
-            world.setBlockState(pos, blockState, UPDATE_FLAG);
 
             final TileEntity entity = world.getTileEntity(pos);
 
@@ -322,8 +326,6 @@ public final class MinecoloniesPlacementHandlers
 
     public static class GeneralBlockPlacementHandler implements IPlacementHandler
     {
-        private static final Direction[] DIRS = new Direction[]{Direction.WEST, Direction.EAST, Direction.NORTH, Direction.SOUTH, Direction.DOWN, Direction.UP};
-
         @Override
         public boolean canHandle(@NotNull final World world, @NotNull final BlockPos pos, @NotNull final BlockState blockState)
         {
@@ -342,10 +344,14 @@ public final class MinecoloniesPlacementHandlers
         {
             if (world.getBlockState(pos).equals(blockState))
             {
+                if (tileEntityData != null)
+                {
+                    handleTileEntityPlacement(tileEntityData, world, pos, settings);
+                }
                 return ActionProcessingResult.ACCEPT;
             }
 
-            if (!world.setBlockState(pos, blockState, com.ldtteam.structurize.api.util.constant.Constants.UPDATE_FLAG))
+            if (!world.setBlockState(pos, blockState, UPDATE_FLAG))
             {
                 return ActionProcessingResult.ACCEPT;
             }
