@@ -128,7 +128,7 @@ public class RenderBipedCitizen extends MobRenderer<AbstractEntityCitizen, Citiz
 
                 matrixStack.scale(-0.025F, -0.025F, 0.025F);
 
-                final Matrix4f matrix = matrixStack.getLast().getPositionMatrix();
+                final Matrix4f matrix = matrixStack.getLast().getMatrix();
                 final IVertexBuilder r = buffer.getBuffer(MRenderTypes.customTextRenderer(texture));
 
                 r.pos(matrix,0, 0, 0).tex(0, 0).lightmap(250).endVertex();
