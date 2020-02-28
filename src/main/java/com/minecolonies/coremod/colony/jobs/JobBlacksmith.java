@@ -50,7 +50,7 @@ public class JobBlacksmith extends AbstractJobCrafter<EntityAIWorkBlacksmith, Jo
      */
     @NotNull
     @Override
-    public AbstractAISkeleton<JobBlacksmith> generateAI()
+    public EntityAIWorkBlacksmith generateAI()
     {
         return new EntityAIWorkBlacksmith(this);
     }
