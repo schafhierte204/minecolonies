@@ -146,6 +146,11 @@ public final class WindowConstants
     public static final String BUTTON_TP = "tp";
 
     /**
+     * Id of the rally guards button in the GUI.
+     */
+    public static final String BUTTON_RALLY_GUARDS = "rallyGuards";
+
+    /**
      * Id of the up button in the GUI.
      */
     public static final String BUTTON_DOWN = "minus";
@@ -954,6 +959,11 @@ public final class WindowConstants
      * Id of the short detail label.
      */
     public static final String REQUEST_SHORT_DETAIL = "shortDetail";
+
+    /**
+     * Id of the short detail label.
+     */
+    public static final String REQUEST_PRIORITY = "priority";
 
     /**
      * Id of the requester label.
