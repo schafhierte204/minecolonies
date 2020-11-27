@@ -13,7 +13,7 @@ import net.minecraft.entity.player.PlayerEntity;
  */
 public interface IMCCommand
 {
-    static final int OP_PERM_LEVEL = 4;
+    int OP_PERM_LEVEL = 4;
 
     /**
      * Builds the command, overwrite and add further arguments etc for nonsimple commands. When overwriting this make sure to check the preconditions.

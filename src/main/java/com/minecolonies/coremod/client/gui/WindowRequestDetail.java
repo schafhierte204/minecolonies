@@ -1,36 +1,26 @@
 package com.minecolonies.coremod.client.gui;
 
-import com.google.common.collect.ImmutableList;
 import com.ldtteam.blockout.Color;
 import com.ldtteam.blockout.Pane;
 import com.ldtteam.blockout.controls.*;
 import com.ldtteam.blockout.views.Box;
 import com.ldtteam.blockout.views.Window;
-import com.ldtteam.structurize.util.LanguageHandler;
-import com.minecolonies.api.colony.ICitizenDataView;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.IColonyView;
-import com.minecolonies.api.colony.buildings.views.IBuildingView;
 import com.minecolonies.api.colony.requestsystem.request.IRequest;
 import com.minecolonies.api.colony.requestsystem.resolver.IRequestResolver;
 import com.minecolonies.api.util.ItemStackUtils;
 import com.minecolonies.api.util.Log;
 import com.minecolonies.api.util.constant.Constants;
-import com.minecolonies.coremod.colony.buildings.workerbuildings.BuildingDeliveryman;
-import com.minecolonies.coremod.colony.jobs.views.DmanJobView;
-import com.minecolonies.coremod.colony.requestsystem.requests.StandardRequests;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.math.BlockPos;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
 import static com.minecolonies.api.util.constant.Suppression.EXCEPTION_HANDLERS_SHOULD_PRESERVE_THE_ORIGINAL_EXCEPTIONS;
-import static com.minecolonies.api.util.constant.TranslationConstants.FROM;
-import static com.minecolonies.api.util.constant.TranslationConstants.IN_QUEUE;
 import static com.minecolonies.api.util.constant.WindowConstants.*;
 import static com.minecolonies.coremod.colony.requestsystem.requests.AbstractRequest.MISSING;
 

@@ -11,7 +11,6 @@ import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
 import org.jetbrains.annotations.NotNull;
 
-import static com.minecolonies.api.util.constant.CitizenConstants.BASE_MOVEMENT_SPEED;
 import static com.minecolonies.api.util.constant.CitizenConstants.SKILL_BONUS_ADD;
 
 /**

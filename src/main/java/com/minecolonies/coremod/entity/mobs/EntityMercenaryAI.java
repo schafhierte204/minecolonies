@@ -100,7 +100,7 @@ public class EntityMercenaryAI extends Goal
         PATROLLING,
         FIGHTING,
         ALIVE,
-        DEAD;
+        DEAD
     }
 
     public EntityMercenaryAI(final EntityMercenary entityMercenary)

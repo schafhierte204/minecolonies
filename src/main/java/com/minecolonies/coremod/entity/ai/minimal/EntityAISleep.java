@@ -74,7 +74,7 @@ public class EntityAISleep extends Goal
         AWAKE,
         WALKING_HOME,
         FIND_BED,
-        SLEEPING;
+        SLEEPING
     }
 
     /**

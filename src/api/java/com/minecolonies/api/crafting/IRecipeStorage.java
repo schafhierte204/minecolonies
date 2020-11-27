@@ -82,39 +82,39 @@ public interface IRecipeStorage
      * This type comes from the RecipeTypes registry
      * @return The recipe type
      */
-    public AbstractRecipeType<IRecipeStorage> getRecipeType();
+    AbstractRecipeType<IRecipeStorage> getRecipeType();
 
     /**
      * Get a list of alternates to getPrimaryOutput
      * @return a list if Itemstacks that this recipe can produce instead of getPrimaryOutput
      */
-    public List<ItemStack> getAlternateOutputs();
+    List<ItemStack> getAlternateOutputs();
 
     /**
      * Get the classic version of this recipe with GetPrimaryOutput targetted correctly from the chosen alternate
      * @param requiredOutput Which output wanted
      * @return the RecipeStorage that is "right" for that output
      */
-    public RecipeStorage getClassicForMultiOutput(ItemStack requiredOutput);
+    RecipeStorage getClassicForMultiOutput(ItemStack requiredOutput);
 
     /**
      * Get the classic version of this recipe with GetPrimaryOutput targetted correctly from the chosen alternate
      * @param stackPredicate Predicate to select the right stack
      * @return the RecipeStorage that is "right" for that output
      */
-    public RecipeStorage getClassicForMultiOutput(final Predicate<ItemStack> stackPredicate);
+    RecipeStorage getClassicForMultiOutput(final Predicate<ItemStack> stackPredicate);
 
     /**
      * Source of the recipe, ie registry name.
      * @return RecipeSource
      */
-    public ResourceLocation getRecipeSource();
+    ResourceLocation getRecipeSource();
 
     /**
      * Get the secondary (leave behind in grid) outputs
      * @return list of items that weren't consumed during crafting
      */
-    public List<ItemStack> getSecondaryOutputs();
+    List<ItemStack> getSecondaryOutputs();
 
     /**
      * Get the unique token of the recipe.

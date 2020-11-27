@@ -10,7 +10,6 @@ import com.minecolonies.api.colony.workorders.WorkOrderType;
 import com.minecolonies.api.util.Log;
 import com.minecolonies.coremod.colony.Colony;
 import com.minecolonies.coremod.colony.buildings.workerbuildings.BuildingBuilder;
-import com.minecolonies.coremod.colony.jobs.JobBuilder;
 import com.minecolonies.coremod.entity.ai.citizen.builder.ConstructionTapeHelper;
 import com.minecolonies.coremod.tileentities.TileEntityDecorationController;
 import com.minecolonies.coremod.util.AdvancementUtils;

@@ -218,7 +218,7 @@ public class EntityCitizen extends AbstractEntityCitizen
         INIT,
         ACTIVE_SERVER,
         ACTIVE_CLIENT,
-        INACTIVE;
+        INACTIVE
     }
 
     /**

@@ -8,7 +8,6 @@ import com.minecolonies.coremod.entity.pathfinding.Pathfinding;
 import com.minecolonies.coremod.network.messages.client.ColonyStylesMessage;
 import com.minecolonies.coremod.network.messages.client.ServerUUIDMessage;
 import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.resources.IReloadableResourceManager;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;

@@ -4,7 +4,6 @@ import com.minecolonies.api.colony.interactionhandling.IInteractionResponseHandl
 import com.minecolonies.api.colony.requestsystem.requestable.IRequestable;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.entity.citizen.AbstractCivilianEntity;
-import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.network.PacketBuffer;

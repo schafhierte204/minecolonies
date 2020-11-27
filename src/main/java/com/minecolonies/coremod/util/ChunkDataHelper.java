@@ -1,6 +1,5 @@
 package com.minecolonies.coremod.util;
 
-import com.ldtteam.structurize.util.LanguageHandler;
 import com.minecolonies.api.colony.IChunkmanagerCapability;
 import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;

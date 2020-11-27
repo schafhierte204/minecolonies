@@ -12,7 +12,7 @@ public interface IVisitorViewData extends ICitizenDataView
      *
      * @return colony
      */
-    public IColonyView getColonyView();
+    IColonyView getColonyView();
 
     /**
      * Gets the visitors recruitment cost

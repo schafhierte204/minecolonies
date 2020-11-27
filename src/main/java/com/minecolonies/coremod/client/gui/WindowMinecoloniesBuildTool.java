@@ -1,7 +1,6 @@
 package com.minecolonies.coremod.client.gui;
 
 import com.ldtteam.structures.helpers.Settings;
-import com.ldtteam.structures.lib.BlueprintUtils;
 import com.ldtteam.structurize.client.gui.WindowBuildTool;
 import com.ldtteam.structurize.management.StructureName;
 import com.ldtteam.structurize.placement.handlers.placement.PlacementError;
@@ -91,7 +90,6 @@ public class WindowMinecoloniesBuildTool extends WindowBuildTool
     public void paste(final StructureName name, final boolean complete)
     {
         final BlockPos offset = Settings.instance.getActiveStructure().getPrimaryBlockOffset();
-        ;
         final BlockState state = Settings.instance.getActiveStructure().getBlockState(offset).getBlockState();
         if (name.isHut() || Settings.instance.getStaticSchematicName() != null && !Settings.instance.getStaticSchematicName().isEmpty())
         {

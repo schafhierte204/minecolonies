@@ -7,7 +7,6 @@ import com.ldtteam.blockout.controls.Image;
 import com.ldtteam.blockout.controls.ItemIcon;
 import com.ldtteam.blockout.controls.Label;
 import com.ldtteam.blockout.views.ScrollingList;
-import com.ldtteam.structurize.util.LanguageHandler;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.IColonyView;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;

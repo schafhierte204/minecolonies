@@ -308,7 +308,6 @@ public class NewBobberEntity extends Entity implements IEntityAdditionalSpawnDat
           this.rotationPitch - this.prevRotationPitch < -180.0F;
           this.prevRotationPitch -= 360.0F)
         {
-            ;
         }
 
         while (this.rotationPitch - this.prevRotationPitch >= 180.0F)
@@ -625,6 +624,6 @@ public class NewBobberEntity extends Entity implements IEntityAdditionalSpawnDat
     {
         FLYING,
         HOOKED_IN_ENTITY,
-        BOBBING;
+        BOBBING
     }
 }
