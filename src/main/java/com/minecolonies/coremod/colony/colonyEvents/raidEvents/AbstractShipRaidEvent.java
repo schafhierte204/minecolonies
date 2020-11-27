@@ -198,7 +198,7 @@ public abstract class AbstractShipRaidEvent implements IColonyRaidEvent, IColony
     /**
      * Gets the raids display name
      *
-     * @return
+     * @return display Name
      */
     protected abstract ITextComponent getDisplayName();
 

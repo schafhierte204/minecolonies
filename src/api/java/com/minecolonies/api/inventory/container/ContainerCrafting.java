@@ -377,7 +377,7 @@ public class ContainerCrafting extends Container
 
     /**
      * Get for the remaining items. 
-     * @return
+     * @return Remaining Items
      */
     public List<ItemStack> getRemainingItems()
     {

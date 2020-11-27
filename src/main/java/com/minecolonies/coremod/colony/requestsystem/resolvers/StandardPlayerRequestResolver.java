@@ -62,7 +62,7 @@ public class StandardPlayerRequestResolver implements IPlayerRequestResolver
     @Override
     public void onRequestedRequestComplete(@NotNull final IRequestManager manager, @NotNull final IRequest<?> request)
     {
-        /**
+        /*
          * Nothing to do here right now.
          */
     }

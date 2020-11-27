@@ -278,7 +278,7 @@ public class EntityCitizen extends AbstractEntityCitizen
     /**
      * Whether the entity should be inactive
      *
-     * @return
+     * @return true if inactive
      */
     private boolean shouldBeInactive()
     {

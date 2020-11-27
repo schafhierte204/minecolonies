@@ -132,7 +132,6 @@ public class EntityAIInteractToggleAble extends Goal
      * Checks the path blocks when collided with something
      *
      * @param path the path through the fence.
-     * @return true if the gate can be passed
      */
     private void checkPathBlocksCollided(final Path path)
     {

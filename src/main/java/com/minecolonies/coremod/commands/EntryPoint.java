@@ -23,7 +23,7 @@ public class EntryPoint
 
     public static void register(final CommandDispatcher<CommandSource> dispatcher)
     {
-        /**
+        /*
          * Kill commands subtree
          */
         final CommandTree killCommands = new CommandTree("kill")
@@ -35,7 +35,7 @@ public class EntryPoint
                                            .addNode(new CommandKillRaider().build())
                                            .addNode(new CommandKillSheep().build());
 
-        /**
+        /*
          * Colony commands subtree
          */
         final CommandTree colonyCommands = new CommandTree("colony")
@@ -57,7 +57,7 @@ public class EntryPoint
                                              .addNode(new CommandRSResetAll().build())
                                              .addNode(new CommandSetAbandoned().build());
 
-        /**
+        /*
          * Citizen commands subtree
          */
         final CommandTree citizenCommands = new CommandTree("citizens")
@@ -69,7 +69,7 @@ public class EntryPoint
                                               .addNode(new CommandCitizenTeleport().build())
                                               .addNode(new CommandCitizenTriggerWalkTo().build());
 
-        /**
+        /*
          * Root minecolonies command tree, all subtrees are added here.
          */
         final CommandTree minecoloniesRoot = new CommandTree(Constants.MOD_ID)
@@ -88,7 +88,7 @@ public class EntryPoint
                                                .addNode(new CommandHelp().build())
                                                .addNode(new CommandPruneWorld().build());
 
-        /**
+        /*
          * Root minecolonies alias command tree, all subtrees are added here.
          */
         final CommandTree minecoloniesRootAlias = new CommandTree("mc")

@@ -116,7 +116,7 @@ public class EntityAISleep extends Goal
     /**
      * Walking to the home/bed position
      *
-     * @return
+     * @return next State
      */
     private SleepState walkHome()
     {

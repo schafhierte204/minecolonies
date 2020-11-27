@@ -394,7 +394,7 @@ public class Node
 
     /**
      * Get rotation stored in the node as an optional, only set if actually stored. 
-     * @return
+     * @return Rotation
      */
     public Optional<Integer> getRot()
     {
@@ -403,7 +403,7 @@ public class Node
 
     /**
      * Set rotation storaged in the node
-     * @param rot
+     * @param rot Rotation
      */
     public void setRot(int rot)
     {

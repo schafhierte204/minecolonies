@@ -229,7 +229,7 @@ public interface IBuilding extends IBuildingContainer, IRequestResolverProvider,
 
     /**
      * Sets whether this building has a guard building nearby
-     * @param guardBuildingNear
+     * @param guardBuildingNear Nearby Guard building?
      */
     void setGuardBuildingNear(boolean guardBuildingNear);
 

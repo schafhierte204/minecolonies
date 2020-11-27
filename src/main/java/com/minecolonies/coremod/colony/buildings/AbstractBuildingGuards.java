@@ -848,7 +848,7 @@ public abstract class AbstractBuildingGuards extends AbstractBuildingWorker impl
 
         /**
          * Is hiring from training facilities enabled
-         * @return
+         * @return hireTrainees
          */
         public boolean isHireTrainees()
         {
@@ -1244,7 +1244,7 @@ public abstract class AbstractBuildingGuards extends AbstractBuildingWorker impl
 
     /**
      * is hiring from training facilities enabled
-     * @return
+     * @return hireTrainees
      */
     public boolean isHireTrainees()
     {

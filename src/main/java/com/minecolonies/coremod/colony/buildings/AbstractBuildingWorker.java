@@ -289,7 +289,7 @@ public abstract class AbstractBuildingWorker extends AbstractBuilding implements
     }
 
     /**
-     * @param token
+     * @param token Token
      * @return whether the recipe can bee added based on tokens.
      */
     protected Optional<Boolean> canRecipeBeAddedBasedOnTags(final IToken<?> token)
@@ -299,7 +299,7 @@ public abstract class AbstractBuildingWorker extends AbstractBuilding implements
     }
 
     /**
-     * @param storage
+     * @param storage Recipe Storage
      * @return whether the recipe can bee added based on tokens.
      */
     protected Optional<Boolean> canRecipeBeAddedBasedOnTags(final IRecipeStorage storage)

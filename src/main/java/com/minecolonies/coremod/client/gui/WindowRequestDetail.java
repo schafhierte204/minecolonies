@@ -213,8 +213,8 @@ public class WindowRequestDetail extends Window implements ButtonHandler
         }
         catch (@SuppressWarnings(EXCEPTION_HANDLERS_SHOULD_PRESERVE_THE_ORIGINAL_EXCEPTIONS) final IllegalArgumentException e)
         {
-            /**
-             * Do nothing we just need to know if it has a resolver or not.
+            /*
+              Do nothing we just need to know if it has a resolver or not.
              */
             Log.getLogger().warn("---IRequestResolver Null in WindowRequestDetail---", e);
         }

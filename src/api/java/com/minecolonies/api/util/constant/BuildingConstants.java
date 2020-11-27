@@ -127,7 +127,7 @@ public final class BuildingConstants
      */
     private BuildingConstants()
     {
-        /**
+        /*
          * Intentionally left empty.
          */
     }

@@ -20,7 +20,7 @@ import java.util.Optional;
  */
 public interface ICivilianData extends ICitizen, INBTSerializable<CompoundNBT>
 {
-    /**
+    /*
      * Return the entity instance of the civilian data. Respawn the civilian if needed.
      *
      * @return {@link AbstractEntityCitizen} of the civilian data.
@@ -185,7 +185,7 @@ public interface ICivilianData extends ICitizen, INBTSerializable<CompoundNBT>
     /**
      * Gets the entity
      *
-     * @return
+     * @return Entity
      */
     Optional<? extends AbstractCivilianEntity> getEntity();
 }

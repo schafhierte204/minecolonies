@@ -964,7 +964,7 @@ public class Colony implements IColony
     {
         if (w != world)
         {
-            /**
+            /*
              * If the event world is not the colony world ignore. This might happen in interactions with other mods.
              * This should not be a problem for minecolonies as long as we take care to do nothing in that moment.
              */
@@ -1070,9 +1070,9 @@ public class Colony implements IColony
     {
         if (event.world != getWorld())
         {
-            /**
-             * If the event world is not the colony world ignore. This might happen in interactions with other mods.
-             * This should not be a problem for minecolonies as long as we take care to do nothing in that moment.
+            /*
+              If the event world is not the colony world ignore. This might happen in interactions with other mods.
+              This should not be a problem for minecolonies as long as we take care to do nothing in that moment.
              */
             return;
         }
