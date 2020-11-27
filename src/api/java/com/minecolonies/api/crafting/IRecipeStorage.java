@@ -107,7 +107,7 @@ public interface IRecipeStorage
 
     /**
      * Source of the recipe, ie registry name.
-     * @return
+     * @return RecipeSource
      */
     ResourceLocation getRecipeSource();
 
