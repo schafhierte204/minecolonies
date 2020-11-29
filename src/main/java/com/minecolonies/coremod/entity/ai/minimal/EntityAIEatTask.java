@@ -153,7 +153,7 @@ public class EntityAIEatTask extends Goal
     /**
      * Eats when it has food, or goes to check his building for food.
      *
-     * @return
+     * @return next Stage
      */
     private EatingState getFood()
     {
@@ -318,7 +318,7 @@ public class EntityAIEatTask extends Goal
     /**
      * Walks to the eating position
      *
-     * @return
+     * @return next Stage
      */
     private EatingState goToEatingPlace()
     {

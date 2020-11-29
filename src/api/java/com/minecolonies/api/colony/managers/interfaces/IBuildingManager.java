@@ -207,7 +207,7 @@ public interface IBuildingManager
     /**
      * Finds whether there is a guard building close to the given building
      *
-     * @param building
+     * @param building Building
      * @return false if no guard tower close, true in other cases
      */
     boolean hasGuardBuildingNear(IBuilding building);

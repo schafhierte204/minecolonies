@@ -2,7 +2,6 @@ package com.minecolonies.api.colony.requestsystem.requestable;
 
 import com.google.common.reflect.TypeToken;
 import com.minecolonies.api.colony.requestsystem.factory.IFactoryController;
-import com.minecolonies.api.colony.requestsystem.requestable.deliveryman.Pickup;
 import com.minecolonies.api.compatibility.Compatibility;
 import com.minecolonies.api.util.ItemStackUtils;
 import com.minecolonies.api.util.ReflectionUtils;

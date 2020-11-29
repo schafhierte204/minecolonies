@@ -1,13 +1,10 @@
 package com.minecolonies.coremod.items;
 
 import com.minecolonies.api.blocks.ModBlocks;
-import com.minecolonies.api.colony.IColony;
-import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.tileentities.TileEntityColonyFlag;
 import com.minecolonies.api.util.constant.Constants;
 import net.minecraft.block.*;
 import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.*;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.ListNBT;

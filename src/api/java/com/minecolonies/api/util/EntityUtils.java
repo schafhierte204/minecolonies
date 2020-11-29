@@ -211,7 +211,6 @@ public final class EntityUtils
     }
 
     /**
-     * {@link #isLivingAtSiteWithMove(LivingEntity, int, int, int)}
      *
      * @param entity entity to check
      * @param x      X-coordinate

@@ -17,7 +17,6 @@ import com.minecolonies.coremod.util.WorkerUtil;
 import net.minecraft.block.AbstractRailBlock;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.LadderBlock;
-import net.minecraft.block.VineBlock;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.MobEntity;
 import net.minecraft.entity.SharedMonsterAttributes;

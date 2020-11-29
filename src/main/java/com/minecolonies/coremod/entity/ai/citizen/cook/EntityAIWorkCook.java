@@ -19,7 +19,6 @@ import com.minecolonies.coremod.colony.jobs.JobCook;
 import com.minecolonies.coremod.entity.ai.basic.AbstractEntityAIUsesFurnace;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.FurnaceTileEntity;
 import net.minecraft.util.ResourceLocation;

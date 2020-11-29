@@ -19,7 +19,7 @@ public final class InventoryFunctions
      */
     private InventoryFunctions()
     {
-        /**
+        /*
          * Intentionally left empty.
          */
     }
@@ -76,7 +76,7 @@ public final class InventoryFunctions
         return foundOne;
     }
 
-    /**
+    /*
      * Topmost matchFirst function, will stop after it finds the first
      * itemstack.
      *

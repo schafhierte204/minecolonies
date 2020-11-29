@@ -4,7 +4,6 @@ import com.minecolonies.api.colony.interactionhandling.IInteractionResponseHandl
 import com.minecolonies.api.colony.requestsystem.requestable.IRequestable;
 import com.minecolonies.api.colony.requestsystem.token.IToken;
 import com.minecolonies.api.entity.citizen.AbstractCivilianEntity;
-import com.minecolonies.api.entity.citizen.AbstractEntityCitizen;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.network.PacketBuffer;
@@ -20,7 +19,7 @@ import java.util.Optional;
  */
 public interface ICivilianData extends ICitizen, INBTSerializable<CompoundNBT>
 {
-    /**
+    /*
      * Return the entity instance of the civilian data. Respawn the civilian if needed.
      *
      * @return {@link AbstractEntityCitizen} of the civilian data.
@@ -185,7 +184,7 @@ public interface ICivilianData extends ICitizen, INBTSerializable<CompoundNBT>
     /**
      * Gets the entity
      *
-     * @return
+     * @return Entity
      */
     Optional<? extends AbstractCivilianEntity> getEntity();
 }

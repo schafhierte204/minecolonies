@@ -59,10 +59,10 @@ public abstract class AbstractWarehouseRequestResolver extends AbstractRequestRe
     }
 
     /**
-     * Override to implement decendent specific checks during canResolveRequest
-     * @param wareHouses
-     * @param requestToCheck
-     * @return
+     * Override to implement specific checks during canResolveRequest
+     * @param wareHouses wareHouse List#
+     * @param requestToCheck recipe list
+     * @return true if resolvable
      */
     protected abstract boolean internalCanResolve(final List<TileEntityWareHouse> wareHouses, final IRequest<? extends IDeliverable> requestToCheck);
 
@@ -102,9 +102,9 @@ public abstract class AbstractWarehouseRequestResolver extends AbstractRequestRe
 
     /**
      * Use to verify that a request chain is valid, and doesn't contain recursive cycles.
-     * @param manager
-     * @param requestToCheck
-     * @return
+     * @param manager Request Manager
+     * @param requestToCheck Request
+     * @return true if Valid
      */
     public boolean isRequestChainValid(@NotNull final IRequestManager manager, final IRequest<?> requestToCheck)
     {

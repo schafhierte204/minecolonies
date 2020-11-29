@@ -333,7 +333,7 @@ public class CustomRecipe
 
     /**
      * Get the ID for this recipe
-     * @return
+     * @return Recipe ID
      */
     public ResourceLocation getRecipeId()
     {
@@ -398,7 +398,7 @@ public class CustomRecipe
 
     /**
      * Get a the recipe storage represented by this recipe
-     * @return
+     * @return RecipeStorage
      */
     public IRecipeStorage getRecipeStorage()
     {

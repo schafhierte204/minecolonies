@@ -209,7 +209,7 @@ public interface ICitizenData extends ICivilianData
 
     /**
      * Gets the entity
-     * @return
+     * @return Entity
      */
     @Override
     Optional<AbstractEntityCitizen> getEntity();

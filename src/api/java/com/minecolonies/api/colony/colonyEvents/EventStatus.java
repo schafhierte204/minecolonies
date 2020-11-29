@@ -10,5 +10,5 @@ public enum EventStatus
     PROGRESSING,
     WAITING,
     DONE,
-    CANCELED;
+    CANCELED
 }

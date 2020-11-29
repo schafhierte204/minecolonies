@@ -158,7 +158,7 @@ public abstract class AbstractWindowWorkerBuilding<B extends AbstractBuildingWor
     {
         if (!building.isRecipeAlterationAllowed() && building.getRecipes().isEmpty())
         {
-            /**
+            /*
              * @see #onOpened() for the reasoning behind this.
              */
             // This should never happen, because the button is hidden. But if someone glitches into the interface, stop him here.

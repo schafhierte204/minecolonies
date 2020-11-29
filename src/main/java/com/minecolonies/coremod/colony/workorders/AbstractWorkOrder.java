@@ -43,7 +43,7 @@ public abstract class AbstractWorkOrder implements IWorkOrder
      */
     @NotNull
     private static final BiMap<String, Class<? extends IWorkOrder>> nameToClassBiMap = HashBiMap.create();
-    /**
+    /*
      * WorkOrder registry.
      */
     static

@@ -14,7 +14,6 @@ import net.minecraft.nbt.CompoundNBT;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static com.minecolonies.api.util.constant.CitizenConstants.BASE_MOVEMENT_SPEED;
 import static com.minecolonies.api.util.constant.CitizenConstants.SKILL_BONUS_ADD;
 import static com.minecolonies.api.util.constant.NbtTagConstants.TAG_TREE;
 

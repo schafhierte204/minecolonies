@@ -98,11 +98,11 @@ public class StaticLocation implements ILocation
         return "Dim: " + dimension + " " + pos.getX() + " " + pos.getY() + " " + pos.getZ() + " ";
     }
 
-    /**
+    /*
      * Internal factory class.
      */
     @SuppressWarnings("squid:S2972")
-    /**
+    /*
      * We have this class the way it is for a reason.
      */
     public static class Factory implements ILocationFactory<BlockPos, StaticLocation>
@@ -116,8 +116,8 @@ public class StaticLocation implements ILocation
         @NotNull
         @Override
         @SuppressWarnings("squid:LeftCurlyBraceStartLineCheck")
-        /**
-         * Moving the curly braces really makes the code hard to read.
+        /*
+          Moving the curly braces really makes the code hard to read.
          */
         public TypeToken<StaticLocation> getFactoryOutputType()
         {
@@ -127,8 +127,8 @@ public class StaticLocation implements ILocation
         @NotNull
         @Override
         @SuppressWarnings("squid:LeftCurlyBraceStartLineCheck")
-        /**
-         * Moving the curly braces really makes the code hard to read.
+        /*
+          Moving the curly braces really makes the code hard to read.
          */
         public TypeToken<BlockPos> getFactoryInputType()
         {

@@ -42,7 +42,7 @@ public enum ToolType implements IToolType
     private final boolean        variableMaterials;
     private final ITextComponent displayName;
 
-    private ToolType(final String name, final boolean variableMaterials, final ITextComponent displayName)
+    ToolType(final String name, final boolean variableMaterials, final ITextComponent displayName)
     {
         this.name = name;
         this.variableMaterials = variableMaterials;

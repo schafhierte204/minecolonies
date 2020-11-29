@@ -36,7 +36,7 @@ public class TileEntityColonyFlagRenderer extends TileEntityRenderer<TileEntityC
 {
     private final ModelRenderer cloth     = BannerTileEntityRenderer.getModelRender();
     private final ModelRenderer standPost = new ModelRenderer(64, 64, 44, 0);
-    private final ModelRenderer crossbar  = new ModelRenderer(64, 64, 0, 42);;
+    private final ModelRenderer crossbar  = new ModelRenderer(64, 64, 0, 42);
 
     public TileEntityColonyFlagRenderer(TileEntityRendererDispatcher dispatcher)
     {

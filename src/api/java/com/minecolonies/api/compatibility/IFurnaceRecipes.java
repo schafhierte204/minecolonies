@@ -33,5 +33,5 @@ public interface IFurnaceRecipes
      * @param stackPredicate the predicate to test.
      * @return the result or null if not existent.
      */
-    public RecipeStorage getFirstSmeltingRecipeByResult(final Predicate<ItemStack> stackPredicate);
+    RecipeStorage getFirstSmeltingRecipeByResult(final Predicate<ItemStack> stackPredicate);
 }

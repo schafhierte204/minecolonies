@@ -700,8 +700,8 @@ public abstract class AbstractPathJob implements Callable<Path>
     /**
      * Creates the path for the given points
      *
-     * @param finalNode
-     * @return
+     * @param finalNode last Node
+     * @return target POs
      */
     protected BlockPos getPathTargetPos(final Node finalNode)
     {

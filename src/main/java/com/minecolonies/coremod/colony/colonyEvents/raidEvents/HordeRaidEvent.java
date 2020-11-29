@@ -352,7 +352,7 @@ public abstract class HordeRaidEvent implements IColonyRaidEvent, IColonyCampFir
     /**
      * Gets the raids display name
      *
-     * @return
+     * @return Display Name
      */
     protected abstract ITextComponent getDisplayName();
 

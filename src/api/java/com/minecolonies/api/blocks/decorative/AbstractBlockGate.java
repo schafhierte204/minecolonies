@@ -405,7 +405,7 @@ public abstract class AbstractBlockGate extends DoorBlock
      * Used for activating the gate.
      *
      * @param world        world to use
-     * @param clickedBlock block thats clicked/used
+     * @param clickedBlock block that's clicked/used
      * @param facing       facing to check
      */
     public void toggleGate(final World world, final BlockPos clickedBlock, final Direction facing)

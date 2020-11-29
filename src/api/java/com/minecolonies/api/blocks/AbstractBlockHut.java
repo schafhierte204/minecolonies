@@ -291,7 +291,6 @@ public abstract class AbstractBlockHut<B extends AbstractBlockHut<B>> extends Ab
      * Checks whether this block is yet to be researched.
      * 
      * @param colony a view of the colony this is crafted in.
-     * @return true if this block needs to be researched before building its hut.
      */
     @OnlyIn(Dist.CLIENT)
     public void checkResearch(final IColonyView colony)

@@ -1,7 +1,6 @@
 package com.minecolonies.coremod.items;
 
 import com.ldtteam.structurize.util.LanguageHandler;
-import com.minecolonies.api.colony.IColony;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.colony.IColonyView;
 import com.minecolonies.api.colony.buildings.views.IBuildingView;
@@ -12,7 +11,6 @@ import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.constant.TranslationConstants;
 import com.minecolonies.coremod.MineColonies;
 import com.minecolonies.coremod.colony.buildings.workerbuildings.BuildingBuilder;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;

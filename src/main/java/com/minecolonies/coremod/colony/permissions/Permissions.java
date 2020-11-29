@@ -53,7 +53,7 @@ public class Permissions implements IPermissions
      */
     @NotNull
     private static final Map<Rank, RankPair> promotionRanks = new EnumMap<>(Rank.class);
-    /**
+    /*
      * Fill the promotion ranks.
      */
     static

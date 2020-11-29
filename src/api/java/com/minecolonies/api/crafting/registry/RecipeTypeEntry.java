@@ -1,6 +1,7 @@
 package com.minecolonies.api.crafting.registry;
 
 import com.minecolonies.api.colony.ICitizenData;
+import com.minecolonies.api.colony.jobs.registry.JobEntry;
 import com.minecolonies.api.crafting.IRecipeStorage;
 import com.minecolonies.api.crafting.AbstractRecipeType;
 import net.minecraft.util.ResourceLocation;

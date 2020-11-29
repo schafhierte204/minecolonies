@@ -617,8 +617,8 @@ public class JobDeliveryman extends AbstractJob<EntityAIWorkDeliveryman, JobDeli
     /**
      * Gets the source position of a request, pickups are reversed
      *
-     * @param request
-     * @return
+     * @param request Request
+     * @return Source
      */
     private BlockPos getSource(final IRequest<?> request)
     {
@@ -642,8 +642,8 @@ public class JobDeliveryman extends AbstractJob<EntityAIWorkDeliveryman, JobDeli
     /**
      * Gets the target position of a request, pickups are reversed
      *
-     * @param request
-     * @return
+     * @param request Request
+     * @return Target Position
      */
     private BlockPos getTarget(final IRequest<?> request)
     {

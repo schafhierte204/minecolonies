@@ -12,5 +12,5 @@ public interface IBuildingBedProvider
      * @return a list of all beds in this building.
      */
     @NotNull
-    public List<BlockPos> getBedList();
+    List<BlockPos> getBedList();
 }

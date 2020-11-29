@@ -4,7 +4,6 @@ import com.ldtteam.structurize.util.LanguageHandler;
 import com.minecolonies.api.colony.IColonyManager;
 import com.minecolonies.api.inventory.container.ContainerCrafting;
 import com.minecolonies.api.util.ItemStackUtils;
-import com.minecolonies.api.util.Log;
 import com.minecolonies.api.util.constant.Constants;
 import com.minecolonies.coremod.Network;
 import com.minecolonies.coremod.colony.buildings.AbstractBuildingWorker;

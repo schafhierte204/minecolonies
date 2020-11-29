@@ -138,7 +138,7 @@ public class WindowAssignCitizen extends Window implements ButtonHandler
                     double newDistance = 0;
                     if (work != null)
                     {
-                        newDistance = BlockPosUtil.getDistance2D(work, building.getPosition());;
+                        newDistance = BlockPosUtil.getDistance2D(work, building.getPosition());
                         workString = " " + newDistance + " blocks";
                     }
 

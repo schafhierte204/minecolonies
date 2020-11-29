@@ -374,7 +374,7 @@ public class Level
         return ladderNode;
     }
 
-    /**
+    /*
      * Add a new node to the level.
      *
      * @param newNode the node to add.

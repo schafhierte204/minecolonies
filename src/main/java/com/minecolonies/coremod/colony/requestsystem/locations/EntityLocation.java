@@ -125,10 +125,10 @@ public class EntityLocation implements ILocation
         return entityRef instanceof PlayerEntity ? (PlayerEntity) entityRef : null;
     }
 
-    @SuppressWarnings("squid:S2972")
     /**
-     * We have this class the way it is for a reason.
+     We have this class the way it is for a reason.
      */
+    @SuppressWarnings("squid:S2972")
     public static class Factory implements ILocationFactory<Entity, EntityLocation>
     {
         ////// --------------------------- NBTConstants --------------------------- \\\\\\
@@ -138,10 +138,10 @@ public class EntityLocation implements ILocation
 
         @NotNull
         @Override
-        @SuppressWarnings("squid:LeftCurlyBraceStartLineCheck")
-        /**
+        /*
          * Moving the curly braces really makes the code hard to read.
          */
+        @SuppressWarnings("squid:LeftCurlyBraceStartLineCheck")
         public TypeToken<EntityLocation> getFactoryOutputType()
         {
             return TypeToken.of(EntityLocation.class);
@@ -149,10 +149,10 @@ public class EntityLocation implements ILocation
 
         @NotNull
         @Override
-        @SuppressWarnings("squid:LeftCurlyBraceStartLineCheck")
-        /**
+        /*
          * Moving the curly braces really makes the code hard to read.
          */
+        @SuppressWarnings("squid:LeftCurlyBraceStartLineCheck")
         public TypeToken<Entity> getFactoryInputType()
         {
             return TypeToken.of(Entity.class);

@@ -331,7 +331,7 @@ public abstract class AbstractEntityAIRequestSmelter<J extends AbstractJobCrafte
 
     /**
      * Add furnace fuel when necessary
-     * @return
+     * @return next Stage
      */
     private IAIState addFuelToFurnace()
     {

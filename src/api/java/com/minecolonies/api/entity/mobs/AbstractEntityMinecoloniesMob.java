@@ -595,7 +595,7 @@ public abstract class AbstractEntityMinecoloniesMob extends MobEntity implements
     /**
      * Gets the scoreboard team name
      *
-     * @return
+     * @return team Name
      */
     protected String getTeamName()
     {

@@ -37,7 +37,7 @@ public class CustomRecipeManager
         
     /**
      * Get the singleton instance of this class
-     * @return
+     * @return Instance
      */
     public static CustomRecipeManager getInstance()
     {
@@ -46,9 +46,8 @@ public class CustomRecipeManager
 
     /**
      * Add a recipe Json to the manager
-     * @param recipeJson
-     * @param namespace
-     * @param path
+     * @param recipeJson Recipe
+     * @param recipeLocation Location
      */
     public void addRecipe(@NotNull final JsonObject recipeJson, @NotNull final ResourceLocation recipeLocation)
     {
@@ -66,9 +65,8 @@ public class CustomRecipeManager
     /**
      * Remove a recipe from the manager
      * This allows modpacks to remove 'bad' recipes in addition to adding good ones
-     * @param recipeJson
-     * @param namespace
-     * @param path
+     * @param recipeJson Recipe
+     * @param recipeLocation Location
      */
     public void removeRecipe(@NotNull final JsonObject recipeJson, @NotNull final ResourceLocation recipeLocation)
     {
@@ -84,8 +82,8 @@ public class CustomRecipeManager
 
     /**
      * Get all of the custom recipes that apply to a particular crafter
-     * @param crafter
-     * @return
+     * @param crafter Crafter
+     * @return Recipes
      */
     public Set<CustomRecipe> getRecipes(@NotNull final String crafter)
     {

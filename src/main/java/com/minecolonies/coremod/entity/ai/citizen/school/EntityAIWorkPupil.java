@@ -5,7 +5,6 @@ import com.minecolonies.api.entity.ModEntities;
 import com.minecolonies.api.entity.ai.statemachine.AITarget;
 import com.minecolonies.api.entity.ai.statemachine.states.IAIState;
 import com.minecolonies.api.entity.citizen.Skill;
-import com.minecolonies.api.util.BlockPosUtil;
 import com.minecolonies.api.util.InventoryUtils;
 import com.minecolonies.coremod.Network;
 import com.minecolonies.coremod.colony.buildings.workerbuildings.BuildingSchool;
