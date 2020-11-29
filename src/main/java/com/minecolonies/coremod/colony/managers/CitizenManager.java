@@ -234,7 +234,7 @@ public class CitizenManager implements ICitizenManager
             spawnLocation = colony.getBuildingManager().getTownHall().getPosition();
         }
 
-        if (WorldUtil.isEntityBlockLoaded(colony.getWorld(), spawnLocation))
+        if (WorldUtil.isEntityBlockLoaded(world, spawnLocation))
         {
             BlockPos calculatedSpawn = EntityUtils.getSpawnPoint(world, spawnLocation);
             if (calculatedSpawn != null)
