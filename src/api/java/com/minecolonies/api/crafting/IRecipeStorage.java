@@ -4,6 +4,7 @@ import com.minecolonies.api.colony.requestsystem.token.IToken;
 import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.World;
 import net.minecraftforge.items.IItemHandler;
 import org.jetbrains.annotations.NotNull;
 
@@ -64,9 +65,9 @@ public interface IRecipeStorage
      */
     boolean canFullFillRecipe(final int qty, final Map<ItemStorage, Integer> existingRequirements, @NotNull final IItemHandler... inventories);
 
-    default boolean fullFillRecipe(@NotNull final IItemHandler... inventories)
+    default boolean fullFillRecipe(@NotNull final World world, @NotNull final IItemHandler... inventories)
     {
-        return fullfillRecipe(Arrays.asList(inventories));
+        return fullfillRecipe(world, Arrays.asList(inventories));
     }
 
     /**
@@ -75,7 +76,7 @@ public interface IRecipeStorage
      * @param handlers the handlers to use.
      * @return true if succesful.
      */
-    boolean fullfillRecipe(final List<IItemHandler> handlers);
+    boolean fullfillRecipe(final World world, final List<IItemHandler> handlers);
 
     /**
      * Get which type this recipe is
@@ -106,7 +107,7 @@ public interface IRecipeStorage
 
     /**
      * Source of the recipe, ie registry name.
-     * @return RecipeSource
+     * @return
      */
     ResourceLocation getRecipeSource();
 
@@ -115,6 +116,12 @@ public interface IRecipeStorage
      * @return list of items that weren't consumed during crafting
      */
     List<ItemStack> getSecondaryOutputs();
+
+    /** 
+     * Get the location/id of the Loot table used for optional outputs
+     * @return the resource location for the table
+    */
+    ResourceLocation getLootTable();
 
     /**
      * Get the unique token of the recipe.
