@@ -717,7 +717,7 @@ public abstract class AbstractBuildingWorker extends AbstractBuilding implements
         buf.writeInt(getSecondarySkill().ordinal());
         buf.writeInt(getMaxInhabitants());
         buf.writeBoolean(isRecipeAlterationAllowed());
-        buf.writeString(jobDisplayName);
+        buf.writeString(getJobDisplayName());
         buf.writeInt(getMaxRecipes());
     }
 
@@ -908,21 +908,13 @@ public abstract class AbstractBuildingWorker extends AbstractBuilding implements
      */
     public String getJobDisplayName()
     {
+        if (jobDisplayName.isEmpty())
+        {
+            jobDisplayName = createJob(null).getName();
+        }
         return jobDisplayName;
     }
 
-    /**
-     * Set the job Display name
-     * @param jobDisplayName the localization ID for the display name
-     */
-    public void setJobDisplayName(String jobDisplayName)
-    {
-        if(this.jobDisplayName.isEmpty())
-        {
-            this.jobDisplayName = jobDisplayName;
-        }
-    }
-    
     /**
      * AbstractBuildingWorker View for clients.
      */
