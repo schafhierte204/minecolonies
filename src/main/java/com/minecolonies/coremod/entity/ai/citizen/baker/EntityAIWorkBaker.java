@@ -56,4 +56,11 @@ public class EntityAIWorkBaker extends AbstractEntityAIRequestSmelter<JobBaker, 
         worker.getCitizenData().setVisibleStatus(BAKING);
         return super.craft();
     }
+
+    @Override
+    public boolean isAfterDumpPickupAllowed()
+    {
+        return true;
+    }
+
 }
